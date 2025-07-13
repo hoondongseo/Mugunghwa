@@ -9,7 +9,7 @@ import { LocationBanner } from "@/components/location-banner";
 import { useLocation } from "@/hooks/use-location";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Flag, MapPin, Heart } from "lucide-react";
+import { Plus, MapPin, Heart } from "lucide-react";
 
 export default function Home() {
 	const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
@@ -74,9 +74,13 @@ export default function Home() {
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 					<div className="flex justify-center items-center py-4">
 						<div className="flex items-center space-x-3">
-							<Flag className="text-red-600 h-8 w-8" />
+							<img
+								src="/images/yoon_again.png"
+								alt="윤어게인"
+								className="h-12 w-12"
+							/>
 							<h1 className="text-2xl font-bold text-gray-900">
-								대한민국 응원 메시지
+								윤카 응원 메시지
 							</h1>
 						</div>
 					</div>
@@ -156,14 +160,18 @@ export default function Home() {
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 						<div>
 							<div className="flex items-center space-x-3 mb-4">
-								<Flag className="text-red-600 h-8 w-8" />
+								<img
+									src="/images/yoon_again.png"
+									alt="윤어게인"
+									className="h-12 w-12"
+								/>
 								<h3 className="text-xl font-bold">
-									대한민국 응원 메시지
+									윤카 응원 메시지
 								</h3>
 							</div>
 							<p className="text-gray-400">
-								전국 곳곳에서 피어나는 무궁화와 함께 대한민국의
-								밝은 미래를 응원합니다.
+								전국 곳곳에서 피어나는 무궁화와 함께
+								자유대한민국의 밝은 미래를 응원합니다.
 							</p>
 						</div>
 
@@ -172,9 +180,7 @@ export default function Home() {
 								개인정보 보호
 							</h4>
 							<ul className="space-y-2 text-sm text-gray-400">
-								<li>• 위치 정보는 시/군/구 단위로만 수집</li>
 								<li>• 개인 식별 정보는 저장하지 않음</li>
-								<li>• 메시지는 검토 후 게시</li>
 								<li>• 부적절한 내용은 자동 필터링</li>
 							</ul>
 						</div>
@@ -182,15 +188,16 @@ export default function Home() {
 						<div>
 							<h4 className="font-semibold mb-4">문의사항</h4>
 							<div className="text-sm text-gray-400 space-y-2">
-								<p>이메일: support@korea-support.gov.kr</p>
-								<p>전화: 02-1234-5678</p>
+								<p>이메일: younghotsdh@gmail.com</p>
 								<p>운영시간: 평일 09:00 - 18:00</p>
 							</div>
 						</div>
 					</div>
 
 					<div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-						<p>&copy; 2024 대한민국 응원 메시지. 모든 권리 보유.</p>
+						<p>
+							&copy; 2025 윤카 응원 메시지. All Rights Reserved.
+						</p>
 					</div>
 				</div>
 			</footer>

@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Heart } from "lucide-react";
 // import { koreanRegions } from "@/lib/korean-regions"; // region lookup if needed
-import { MapContainer, TileLayer, CircleMarker, Popup, useMapEvents } from "react-leaflet";
+import {
+	MapContainer,
+	TileLayer,
+	CircleMarker,
+	Popup,
+	useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Region, Message as MessageType } from "@shared/schema";
 import { useState } from "react";
@@ -62,7 +68,10 @@ export function InteractiveMap({
 								key={msg.id}
 								center={[lat, lng]}
 								radius={6}
-								pathOptions={{ color: "#FF69B4", fillOpacity: 0.8 }}
+								pathOptions={{
+									color: "#FF69B4",
+									fillOpacity: 0.8,
+								}}
 								eventHandlers={{
 									click: (e) => {
 										e.originalEvent.stopPropagation();
@@ -73,23 +82,41 @@ export function InteractiveMap({
 							>
 								<Popup closeOnClick={false} autoClose={false}>
 									<div className="space-y-2">
-										<p className="font-semibold">{msg.region}</p>
+										<p className="font-semibold">
+											{msg.region}
+										</p>
 										<p>{msg.content}</p>
 										<div className="flex items-center justify-between text-xs text-gray-500">
-											<span>{new Date(msg.createdAt!).toLocaleDateString()}</span>
+											<span>
+												{new Date(
+													msg.createdAt!
+												).toLocaleDateString()}
+											</span>
 											<div className="flex items-center">
 												<button
 													onClick={(e) => {
 														e.stopPropagation();
-														handleToggleLike(msg.id);
+														handleToggleLike(
+															msg.id
+														);
 													}}
 													className="mr-1"
-													aria-label={likedIds.has(msg.id) ? "좋아요 취소" : "좋아요"}
-													title={likedIds.has(msg.id) ? "좋아요 취소" : "좋아요"}
+													aria-label={
+														likedIds.has(msg.id)
+															? "좋아요 취소"
+															: "좋아요"
+													}
+													title={
+														likedIds.has(msg.id)
+															? "좋아요 취소"
+															: "좋아요"
+													}
 												>
 													<Heart
 														className={`${
-															likedIds.has(msg.id) ? "fill-red-400 text-red-400" : "text-red-400"
+															likedIds.has(msg.id)
+																? "fill-red-400 text-red-400"
+																: "text-red-400"
 														} h-3 w-3`}
 													/>
 												</button>

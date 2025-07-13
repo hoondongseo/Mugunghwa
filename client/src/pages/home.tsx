@@ -12,59 +12,62 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Flag, MapPin, Heart } from "lucide-react";
 
 export default function Home() {
-  const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  // Track liked message IDs across map and feed
-  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
-  // Load liked IDs from localStorage
-  useEffect(() => {
-	const stored = localStorage.getItem("likedIds");
-	if (stored) {
-	  try {
-		const arr = JSON.parse(stored) as number[];
-		setLikedIds(new Set(arr));
-	  } catch {}
-	}
-  }, []);
-  const queryClient = useQueryClient();
+	const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
+	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+	// Track liked message IDs across map and feed
+	const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+	// Load liked IDs from localStorage
+	useEffect(() => {
+		const stored = localStorage.getItem("likedIds");
+		if (stored) {
+			try {
+				const arr = JSON.parse(stored) as number[];
+				setLikedIds(new Set(arr));
+			} catch {}
+		}
+	}, []);
+	const queryClient = useQueryClient();
 
-  const handleToggleLike = async (id: number) => {
-	const isLiked = likedIds.has(id);
-	try {
-	  let newSet = new Set(likedIds);
-	  if (isLiked) {
-		await apiRequest('POST', `/api/messages/${id}/unlike`);
-		newSet.delete(id);
-	  } else {
-		await apiRequest('POST', `/api/messages/${id}/like`);
-		newSet.add(id);
-	  }
-	  // Update state and persist
-	  setLikedIds(newSet);
-	  localStorage.setItem("likedIds", JSON.stringify(Array.from(newSet)));
-	  queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-	} catch (error) {
-	  console.error(error);
-	}
-  };
-  const { userLocation, requestLocation, hasPermission } = useLocation();
+	const handleToggleLike = async (id: number) => {
+		const isLiked = likedIds.has(id);
+		try {
+			let newSet = new Set(likedIds);
+			if (isLiked) {
+				await apiRequest("POST", `/api/messages/${id}/unlike`);
+				newSet.delete(id);
+			} else {
+				await apiRequest("POST", `/api/messages/${id}/like`);
+				newSet.add(id);
+			}
+			// Update state and persist
+			setLikedIds(newSet);
+			localStorage.setItem(
+				"likedIds",
+				JSON.stringify(Array.from(newSet))
+			);
+			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+		} catch (error) {
+			console.error(error);
+		}
+	};
+	const { userLocation, requestLocation, hasPermission } = useLocation();
 
-  const scrollToSection = (sectionId: string) => {
-	const element = document.getElementById(sectionId);
-	if (element) {
-	  element.scrollIntoView({ behavior: "smooth" });
-	}
-  };
+	const scrollToSection = (sectionId: string) => {
+		const element = document.getElementById(sectionId);
+		if (element) {
+			element.scrollIntoView({ behavior: "smooth" });
+		}
+	};
 
-  const handleOpenMessageForm = () => {
-	if (!hasPermission) {
-	  requestLocation();
-	} else {
-	  setIsMessageFormOpen(true);
-	}
-  };
+	const handleOpenMessageForm = () => {
+		if (!hasPermission) {
+			requestLocation();
+		} else {
+			setIsMessageFormOpen(true);
+		}
+	};
 
-  return (
+	return (
 		<div className="min-h-screen bg-gray-50">
 			{/* Header */}
 			<header className="bg-white shadow-sm border-b-2 border-red-600">
@@ -124,12 +127,12 @@ export default function Home() {
 							있습니다
 						</p>
 					</div>
-		  <InteractiveMap
-			onRegionSelect={setSelectedRegion}
-			userLocation={userLocation}
-			likedIds={likedIds}
-			onToggleLike={handleToggleLike}
-		  />
+					<InteractiveMap
+						onRegionSelect={setSelectedRegion}
+						userLocation={userLocation}
+						likedIds={likedIds}
+						onToggleLike={handleToggleLike}
+					/>
 				</div>
 			</section>
 
@@ -140,11 +143,11 @@ export default function Home() {
 
 			{/* Messages Feed Section */}
 			<section id="messages" className="py-12 bg-white">
-		  <MessageFeed
-			selectedRegion={selectedRegion}
-			likedIds={likedIds}
-			onToggleLike={handleToggleLike}
-		  />
+				<MessageFeed
+					selectedRegion={selectedRegion}
+					likedIds={likedIds}
+					onToggleLike={handleToggleLike}
+				/>
 			</section>
 
 			{/* Footer */}
@@ -218,5 +221,5 @@ export default function Home() {
 				</DialogTrigger>
 			</Dialog>
 		</div>
-  );
+	);
 }

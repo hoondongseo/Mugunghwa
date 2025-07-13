@@ -75,6 +75,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to like message" });
     }
   });
+  // Unlike a message
+  app.post("/api/messages/:id/unlike", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid message ID" });
+      }
+      const message = await storage.unlikeMessage(id);
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      res.json(message);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unlike message" });
+    }
+  });
 
   // Get all regions
   app.get("/api/regions", async (req, res) => {
@@ -104,6 +120,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch statistics" });
+    }
+  });
+
+  // Proxy GeoJSON for South Korea provinces
+  app.get('/api/geojson', async (req, res) => {
+    const geoUrl = 'https://raw.githubusercontent.com/southkorea/southkorea-maps/master/gadm/json/skorea-provinces-geo.json';
+    try {
+      const response = await fetch(geoUrl);
+      if (!response.ok) {
+        return res.status(response.status).send(response.statusText);
+      }
+      const data = await response.json();
+      res.json(data);
+    } catch (err) {
+      console.error('GeoJSON proxy error', err);
+      res.status(500).json({ error: 'Failed to fetch GeoJSON' });
     }
   });
 

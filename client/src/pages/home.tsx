@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { InteractiveMap } from "@/components/interactive-map";
 import { MessageForm } from "@/components/message-form";
 import { MessageFeed } from "@/components/message-feed";
@@ -12,21 +14,54 @@ import { Plus, Flag, MapPin, Heart } from "lucide-react";
 export default function Home() {
   const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+  // Track liked message IDs across map and feed
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  // Load liked IDs from localStorage
+  useEffect(() => {
+	const stored = localStorage.getItem("likedIds");
+	if (stored) {
+	  try {
+		const arr = JSON.parse(stored) as number[];
+		setLikedIds(new Set(arr));
+	  } catch {}
+	}
+  }, []);
+  const queryClient = useQueryClient();
+
+  const handleToggleLike = async (id: number) => {
+	const isLiked = likedIds.has(id);
+	try {
+	  let newSet = new Set(likedIds);
+	  if (isLiked) {
+		await apiRequest('POST', `/api/messages/${id}/unlike`);
+		newSet.delete(id);
+	  } else {
+		await apiRequest('POST', `/api/messages/${id}/like`);
+		newSet.add(id);
+	  }
+	  // Update state and persist
+	  setLikedIds(newSet);
+	  localStorage.setItem("likedIds", JSON.stringify(Array.from(newSet)));
+	  queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+	} catch (error) {
+	  console.error(error);
+	}
+  };
   const { userLocation, requestLocation, hasPermission } = useLocation();
 
   const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+	const element = document.getElementById(sectionId);
+	if (element) {
+	  element.scrollIntoView({ behavior: "smooth" });
+	}
   };
 
   const handleOpenMessageForm = () => {
-    if (!hasPermission) {
-      requestLocation();
-    } else {
-      setIsMessageFormOpen(true);
-    }
+	if (!hasPermission) {
+	  requestLocation();
+	} else {
+	  setIsMessageFormOpen(true);
+	}
   };
 
   return (
@@ -89,10 +124,12 @@ export default function Home() {
 							있습니다
 						</p>
 					</div>
-					<InteractiveMap
-						onRegionSelect={setSelectedRegion}
-						userLocation={userLocation}
-					/>
+		  <InteractiveMap
+			onRegionSelect={setSelectedRegion}
+			userLocation={userLocation}
+			likedIds={likedIds}
+			onToggleLike={handleToggleLike}
+		  />
 				</div>
 			</section>
 
@@ -103,7 +140,11 @@ export default function Home() {
 
 			{/* Messages Feed Section */}
 			<section id="messages" className="py-12 bg-white">
-				<MessageFeed selectedRegion={selectedRegion} />
+		  <MessageFeed
+			selectedRegion={selectedRegion}
+			likedIds={likedIds}
+			onToggleLike={handleToggleLike}
+		  />
 			</section>
 
 			{/* Footer */}

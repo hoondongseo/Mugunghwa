@@ -1,21 +1,21 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
 import { Search, Heart, MapPin, Clock, TrendingUp } from "lucide-react";
 import type { Message } from "@shared/schema";
 
 interface MessageFeedProps {
   selectedRegion?: string | null;
+  likedIds: Set<number>;
+  onToggleLike: (id: number) => void;
 }
 
-export function MessageFeed({ selectedRegion }: MessageFeedProps) {
+export function MessageFeed({ selectedRegion, likedIds, onToggleLike }: MessageFeedProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "recent" | "popular" | "region">("all");
-  const queryClient = useQueryClient();
 
   const { data: messages = [], isLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages"],
@@ -25,20 +25,6 @@ export function MessageFeed({ selectedRegion }: MessageFeedProps) {
     queryKey: ["/api/messages/search", { q: searchQuery }],
     enabled: searchQuery.length > 0,
   });
-
-  const likeMessageMutation = useMutation({
-    mutationFn: async (messageId: number) => {
-      const response = await apiRequest("POST", `/api/messages/${messageId}/like`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
-    },
-  });
-
-  const handleLike = (messageId: number) => {
-    likeMessageMutation.mutate(messageId);
-  };
 
   const filteredMessages = () => {
     const baseMessages = searchQuery ? searchResults : messages;
@@ -143,10 +129,15 @@ export function MessageFeed({ selectedRegion }: MessageFeedProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleLike(message.id)}
+                    onClick={() => onToggleLike(message.id)}
                     className="text-red-500 hover:text-red-600 p-0"
+                    aria-label={likedIds.has(message.id) ? "좋아요 취소" : "좋아요"}
                   >
-                    <Heart className="mr-1 h-4 w-4" />
+                    <Heart
+                      className={`mr-1 h-4 w-4 ${
+                        likedIds.has(message.id) ? 'fill-red-500 text-red-500' : ''
+                      }`}
+                    />
                     <span className="text-sm">{message.likes || 0}</span>
                   </Button>
                   <Badge variant="secondary" className="text-xs">

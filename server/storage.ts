@@ -13,6 +13,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   approveMessage(id: number): Promise<Message | undefined>;
   likeMessage(id: number): Promise<Message | undefined>;
+  unlikeMessage(id: number): Promise<Message | undefined>;
   searchMessages(query: string, limit?: number): Promise<Message[]>;
   
   // Region methods
@@ -159,6 +160,15 @@ export class MemStorage implements IStorage {
     }
     return undefined;
   }
+    async unlikeMessage(id: number): Promise<Message | undefined> {
+        const message = this.messages.get(id);
+        if (message && message.likes && message.likes > 0) {
+            message.likes = message.likes - 1;
+            this.messages.set(id, message);
+            return message;
+        }
+        return message;
+    }
 
   async searchMessages(query: string, limit = 50): Promise<Message[]> {
     return Array.from(this.messages.values())

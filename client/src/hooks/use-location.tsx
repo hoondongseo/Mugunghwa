@@ -40,10 +40,15 @@ export function useLocation() {
           isLoading: false,
           error: null,
         });
-        toast({
-          title: "위치 정보 허용됨",
-          description: "메시지를 작성할 수 있습니다.",
-        });
+        // Show permission granted toast only once
+        const noticeKey = 'locationPermissionToastShown';
+        if (!localStorage.getItem(noticeKey)) {
+          toast({
+            title: "위치 정보 허용됨",
+            description: "메시지를 작성할 수 있습니다.",
+          });
+          localStorage.setItem(noticeKey, 'true');
+        }
       },
       (error) => {
         let errorMessage = "위치 정보를 가져올 수 없습니다.";

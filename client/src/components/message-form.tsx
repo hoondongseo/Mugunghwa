@@ -24,7 +24,7 @@ import type { InsertMessage, Message } from "@shared/schema";
 
 interface MessageFormProps {
 	userLocation: { latitude: number; longitude: number } | null;
-	onSuccess?: () => void;
+	onSuccess?: (newMessage: Message) => void;
 }
 
 type FormData = {
@@ -100,7 +100,7 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 			});
 			// Dismiss this toast after 2 seconds
 			setTimeout(() => toastInstance.dismiss(), 2000);
-			onSuccess?.();
+			onSuccess?.(newMessage);
 		},
 		onError: (error: any) => {
 			toast({

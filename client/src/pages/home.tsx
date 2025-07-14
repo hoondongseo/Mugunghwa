@@ -30,27 +30,39 @@ export default function Home() {
 	const queryClient = useQueryClient();
 
 	const handleToggleLike = async (id: number) => {
-		const isLiked = likedIds.has(id);
+		// Determine current liked state from message likes (covers new messages)
+		const currentMsg = queryClient
+			.getQueryData<Message[]>(["/api/messages"])
+			?.find((msg) => msg.id === id);
+		const isLiked = (currentMsg?.likes ?? 0) > 0;
 		const newSet = new Set(likedIds);
 		const delta = isLiked ? -1 : 1;
-		// Optimistic update: update likes and likedIds immediately
+		// Optimistic update for UI responsiveness
 		if (isLiked) newSet.delete(id);
 		else newSet.add(id);
 		setLikedIds(newSet);
 		localStorage.setItem("likedIds", JSON.stringify(Array.from(newSet)));
+		// Optimistically adjust likes count
 		queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
 			(old || []).map((msg) =>
 				msg.id === id
-					? { ...msg, likes: (msg.likes || 0) + delta }
+					? { ...msg, likes: Math.max(0, (msg.likes ?? 0) + delta) }
 					: msg
 			)
 		);
 		try {
-			if (isLiked) {
-				await apiRequest("POST", `/api/messages/${id}/unlike`);
-			} else {
-				await apiRequest("POST", `/api/messages/${id}/like`);
-			}
+			// Send like/unlike to server and get updated message
+			const response = await apiRequest(
+				"POST",
+				`/api/messages/${id}/${isLiked ? "unlike" : "like"}`
+			);
+			const updatedMsg: Message = await response.json();
+			// Override optimistic count with server value
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				(old || []).map((msg) => (msg.id === id ? updatedMsg : msg))
+			);
+			// Refetch to sync UI immediately
+			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
 		} catch (error) {
 			console.error(error);
 			// Revert optimistic update on error
@@ -65,7 +77,10 @@ export default function Home() {
 			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
 				(old || []).map((msg) =>
 					msg.id === id
-						? { ...msg, likes: (msg.likes || 0) - delta }
+						? {
+								...msg,
+								likes: Math.max(0, (msg.likes ?? 0) - delta),
+						  }
 						: msg
 				)
 			);

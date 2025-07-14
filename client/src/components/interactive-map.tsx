@@ -38,6 +38,23 @@ export function InteractiveMap({
 		queryKey: ["/api/messages"],
 	});
 
+	// Group messages by exact latitude, longitude
+	const messageGroups = Object.values(
+		allMessages.reduce((acc, msg) => {
+			const key = `${msg.latitude},${msg.longitude}`;
+			if (!acc[key])
+				acc[key] = {
+					coords: [
+						parseFloat(msg.latitude),
+						parseFloat(msg.longitude),
+					] as [number, number],
+					messages: [] as MessageType[],
+				};
+			acc[key].messages.push(msg);
+			return acc;
+		}, {} as Record<string, { coords: [number, number]; messages: MessageType[] }>)
+	);
+
 	// Use onToggleLike prop
 	const handleToggleLike = (id: number) => onToggleLike(id);
 
@@ -60,73 +77,161 @@ export function InteractiveMap({
 						url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						attribution="&copy; OpenStreetMap contributors"
 					/>
-					{allMessages.map((msg) => {
-						const lat = parseFloat(msg.latitude);
-						const lng = parseFloat(msg.longitude);
-						return (
-							<CircleMarker
-								key={msg.id}
-								center={[lat, lng]}
-								radius={6}
-								pathOptions={{
-									color: "#FF69B4",
-									fillOpacity: 0.8,
-								}}
-								eventHandlers={{
-									click: (e) => {
-										e.originalEvent.stopPropagation();
-										e.target.openPopup();
-										onRegionSelect?.(msg.region);
-									},
-								}}
-							>
-								<Popup closeOnClick={false} autoClose={false}>
-									<div className="space-y-2">
-										<p className="font-semibold">
-											{msg.region}
-										</p>
-										<p>{msg.content}</p>
-										<div className="flex items-center justify-between text-xs text-gray-500">
-											<span>
-												{new Date(
-													msg.createdAt!
-												).toLocaleDateString()}
-											</span>
-											<div className="flex items-center">
-												<button
-													onClick={(e) => {
-														e.stopPropagation();
-														handleToggleLike(
-															msg.id
-														);
-													}}
-													className="mr-1"
-													aria-label={
-														likedIds.has(msg.id)
-															? "좋아요 취소"
-															: "좋아요"
-													}
-													title={
-														likedIds.has(msg.id)
-															? "좋아요 취소"
-															: "좋아요"
-													}
-												>
-													<Heart
-														className={`${
+					{messageGroups.flatMap(({ coords, messages }) => {
+						const [baseLat, baseLng] = coords;
+						if (messages.length === 1) {
+							const msg = messages[0];
+							return (
+								<CircleMarker
+									key={msg.id}
+									center={[baseLat, baseLng]}
+									radius={6}
+									pathOptions={{
+										color: "#FF69B4",
+										fillOpacity: 0.8,
+									}}
+									eventHandlers={{
+										click: (e) => {
+											e.originalEvent.stopPropagation();
+											e.target.openPopup();
+											onRegionSelect?.(msg.region);
+										},
+									}}
+								>
+									<Popup
+										closeOnClick={false}
+										autoClose={false}
+									>
+										<div className="space-y-2">
+											<p className="font-semibold">
+												{msg.region}
+											</p>
+											<p>{msg.content}</p>
+											<div className="flex items-center justify-between text-xs text-gray-500">
+												<span>
+													{new Date(
+														msg.createdAt!
+													).toLocaleDateString()}
+												</span>
+												<div className="flex items-center">
+													<button
+														onClick={(e) => {
+															e.stopPropagation();
+															handleToggleLike(
+																msg.id
+															);
+														}}
+														className="mr-1"
+														aria-label={
 															likedIds.has(msg.id)
-																? "fill-red-400 text-red-400"
-																: "text-red-400"
-														} h-3 w-3`}
-													/>
-												</button>
-												<span>{msg.likes || 0}</span>
+																? "좋아요 취소"
+																: "좋아요"
+														}
+														title={
+															likedIds.has(msg.id)
+																? "좋아요 취소"
+																: "좋아요"
+														}
+													>
+														<Heart
+															className={`${
+																likedIds.has(
+																	msg.id
+																)
+																	? "fill-red-400 text-red-400"
+																	: "text-red-400"
+															} h-3 w-3`}
+														/>
+													</button>
+													<span>
+														{msg.likes || 0}
+													</span>
+												</div>
 											</div>
 										</div>
-									</div>
-								</Popup>
-							</CircleMarker>
-						);
+									</Popup>
+								</CircleMarker>
+							);
+						}
+						// multiple messages: spread in circle
+						const angleStep = (2 * Math.PI) / messages.length;
+						const offset = 0.0002; // approx 20m
+						return messages.map((msg, i) => {
+							const angle = angleStep * i;
+							const lat = baseLat + Math.sin(angle) * offset;
+							const lng = baseLng + Math.cos(angle) * offset;
+							return (
+								<CircleMarker
+									key={msg.id}
+									center={[lat, lng]}
+									radius={6}
+									pathOptions={{
+										color: "#FF69B4",
+										fillOpacity: 0.8,
+									}}
+									eventHandlers={{
+										click: (e) => {
+											e.originalEvent.stopPropagation();
+											e.target.openPopup();
+											onRegionSelect?.(msg.region);
+										},
+									}}
+								>
+									<Popup
+										closeOnClick={false}
+										autoClose={false}
+									>
+										<div className="space-y-2">
+											<p className="font-semibold">
+												{msg.region}
+											</p>
+											<p>{msg.content}</p>
+											<div className="flex items-center justify-between text-xs text-gray-500">
+												<span>
+													{new Date(
+														msg.createdAt!
+													).toLocaleDateString()}
+												</span>
+												<div className="flex items-center">
+													<button
+														onClick={(e) => {
+															e.stopPropagation();
+															handleToggleLike(
+																msg.id
+															);
+														}}
+														className="mr-1"
+														aria-label={
+															likedIds.has(msg.id)
+																? "좋아요 취소"
+																: "좋아요"
+														}
+														title={
+															likedIds.has(msg.id)
+																? "좋아요 취소"
+																: "좋아요"
+														}
+													>
+														<Heart
+															className={`${
+																likedIds.has(
+																	msg.id
+																)
+																	? "fill-red-400 text-red-400"
+																	: "text-red-400"
+															} h-3 w-3`}
+														/>
+													</button>
+													<span>
+														{msg.likes || 0}
+													</span>
+												</div>
+											</div>
+										</div>
+									</Popup>
+								</CircleMarker>
+							);
+						});
 					})}
 				</MapContainer>
 			</div>

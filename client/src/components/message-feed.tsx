@@ -25,6 +25,11 @@ export function MessageFeed({
 
 	const { data: messages = [], isLoading } = useQuery<Message[]>({
 		queryKey: ["/api/messages"],
+		// Prevent automatic refetch to preserve optimistic updates
+		staleTime: 1000 * 60, // 1 minute
+		refetchOnWindowFocus: false,
+		refetchOnMount: false,
+		refetchOnReconnect: false,
 	});
 
 	const { data: searchResults = [] } = useQuery<Message[]>({
@@ -155,7 +160,7 @@ export function MessageFeed({
 										variant="ghost"
 										size="sm"
 										onClick={() => onToggleLike(message.id)}
-										className="text-red-500 hover:text-red-600 p-0"
+										className="hover:text-red-600 p-0"
 										aria-label={
 											likedIds.has(message.id)
 												? "좋아요 취소"
@@ -163,11 +168,13 @@ export function MessageFeed({
 										}
 									>
 										<Heart
-											className={`mr-1 h-4 w-4 ${
-												likedIds.has(message.id)
-													? "fill-red-500 text-red-500"
-													: ""
-											}`}
+											className="mr-1 h-4 w-4 text-red-500"
+											style={{
+												fill:
+													(message.likes ?? 0) > 0
+														? "currentColor"
+														: "none",
+											}}
 										/>
 										<span className="text-sm">
 											{message.likes || 0}

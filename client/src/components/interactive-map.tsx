@@ -34,9 +34,13 @@ export function InteractiveMap({
 		return null;
 	}
 
-	// fetch messages
+	// fetch messages with disabled auto-refetch to preserve optimistic updates
 	const { data: allMessages = [] } = useQuery<MessageType[]>({
 		queryKey: ["/api/messages"],
+		staleTime: 1000 * 60, // 1 minute
+		refetchOnWindowFocus: false,
+		refetchOnMount: false,
+		refetchOnReconnect: false,
 	});
 	// Custom mugunghwa icon for markers
 	const mugunghwaIcon = new L.Icon({
@@ -102,10 +106,7 @@ export function InteractiveMap({
 										},
 									}}
 								>
-									<Popup
-										closeOnClick={false}
-										autoClose={false}
-									>
+									<Popup>
 										<div className="space-y-2">
 											<p className="font-semibold">
 												{msg.region}
@@ -138,13 +139,15 @@ export function InteractiveMap({
 														}
 													>
 														<Heart
-															className={`${
-																likedIds.has(
-																	msg.id
-																)
-																	? "fill-red-400 text-red-400"
-																	: "text-red-400"
-															} h-3 w-3`}
+															className="mr-1 h-3 w-3 text-red-400"
+															style={{
+																stroke: "currentColor",
+																fill:
+																	(msg.likes ??
+																		0) > 0
+																		? "currentColor"
+																		: "none",
+															}}
 														/>
 													</button>
 													<span>
@@ -177,10 +180,7 @@ export function InteractiveMap({
 										},
 									}}
 								>
-									<Popup
-										closeOnClick={false}
-										autoClose={false}
-									>
+									<Popup>
 										<div className="space-y-2">
 											<p className="font-semibold">
 												{msg.region}
@@ -213,13 +213,15 @@ export function InteractiveMap({
 														}
 													>
 														<Heart
-															className={`${
-																likedIds.has(
-																	msg.id
-																)
-																	? "fill-red-400 text-red-400"
-																	: "text-red-400"
-															} h-3 w-3`}
+															className="mr-1 h-3 w-3 text-red-400"
+															style={{
+																stroke: "currentColor",
+																fill:
+																	(msg.likes ??
+																		0) > 0
+																		? "currentColor"
+																		: "none",
+															}}
 														/>
 													</button>
 													<span>

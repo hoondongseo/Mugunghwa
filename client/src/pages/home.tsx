@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { InteractiveMap } from "@/components/interactive-map";
+import type { Message } from "@shared/schema";
 import { MessageForm } from "@/components/message-form";
 import { MessageFeed } from "@/components/message-feed";
 import { Statistics } from "@/components/statistics";
@@ -30,24 +31,44 @@ export default function Home() {
 
 	const handleToggleLike = async (id: number) => {
 		const isLiked = likedIds.has(id);
+		const newSet = new Set(likedIds);
+		const delta = isLiked ? -1 : 1;
+		// Optimistic update: update likes and likedIds immediately
+		if (isLiked) newSet.delete(id);
+		else newSet.add(id);
+		setLikedIds(newSet);
+		localStorage.setItem("likedIds", JSON.stringify(Array.from(newSet)));
+		queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+			(old || []).map((msg) =>
+				msg.id === id
+					? { ...msg, likes: (msg.likes || 0) + delta }
+					: msg
+			)
+		);
 		try {
-			let newSet = new Set(likedIds);
 			if (isLiked) {
 				await apiRequest("POST", `/api/messages/${id}/unlike`);
-				newSet.delete(id);
 			} else {
 				await apiRequest("POST", `/api/messages/${id}/like`);
-				newSet.add(id);
 			}
-			// Update state and persist
-			setLikedIds(newSet);
-			localStorage.setItem(
-				"likedIds",
-				JSON.stringify(Array.from(newSet))
-			);
-			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
 		} catch (error) {
 			console.error(error);
+			// Revert optimistic update on error
+			const revertSet = new Set(newSet);
+			if (isLiked) revertSet.add(id);
+			else revertSet.delete(id);
+			setLikedIds(revertSet);
+			localStorage.setItem(
+				"likedIds",
+				JSON.stringify(Array.from(revertSet))
+			);
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				(old || []).map((msg) =>
+					msg.id === id
+						? { ...msg, likes: (msg.likes || 0) - delta }
+						: msg
+				)
+			);
 		}
 	};
 	const { userLocation, requestLocation, hasPermission } = useLocation();

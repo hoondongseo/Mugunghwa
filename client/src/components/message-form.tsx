@@ -20,7 +20,7 @@ import { insertMessageSchema } from "@shared/schema";
 import { getRegionFromCoordinatesAsync } from "@/lib/korean-regions";
 import { filterContent } from "@/lib/content-filter";
 import { MapPin, Heart, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
-import type { InsertMessage } from "@shared/schema";
+import type { InsertMessage, Message } from "@shared/schema";
 
 interface MessageFormProps {
 	userLocation: { latitude: number; longitude: number } | null;
@@ -87,14 +87,19 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 			const response = await apiRequest("POST", "/api/messages", data);
 			return response.json();
 		},
-		onSuccess: () => {
-			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+		onSuccess: (newMessage: Message) => {
+			// Optimistically add the new message to the cache (avoid refetch to preserve optimistic updates)
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				old ? [newMessage, ...old] : [newMessage]
+			);
 			queryClient.invalidateQueries({ queryKey: ["/api/regions"] });
 			queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
-			toast({
+			const toastInstance = toast({
 				title: "메시지가 성공적으로 전송되었습니다!",
 				description: "검토 후 지도에 무궁화가 피어날 예정입니다.",
 			});
+			// Dismiss this toast after 2 seconds
+			setTimeout(() => toastInstance.dismiss(), 2000);
 			onSuccess?.();
 		},
 		onError: (error: any) => {
@@ -122,11 +127,13 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 			// Filter content for inappropriate language
 			const isContentAppropriate = filterContent(data.content);
 			if (!isContentAppropriate) {
-				toast({
+				const toastInstance = toast({
 					title: "부적절한 내용",
 					description: "메시지에 부적절한 내용이 포함되어 있습니다.",
 					variant: "destructive",
 				});
+				// Dismiss this toast after 1 second
+				setTimeout(() => toastInstance.dismiss(), 2000);
 				setIsSubmitting(false);
 				return;
 			}
@@ -187,10 +194,12 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 		setTimeout(() => {
 			setIsLocationVerified(true);
 			setIsLocationLoading(false);
-			toast({
+			const toastInstance = toast({
 				title: "위치 인증 완료",
 				description: "메시지를 작성할 수 있습니다.",
 			});
+			// Dismiss this toast after 1 second
+			setTimeout(() => toastInstance.dismiss(), 2000);
 		}, 1500);
 	};
 
@@ -229,7 +238,9 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 									: "위치 인증 필요"}
 							</div>
 							<div className="text-sm text-gray-600">
-								{userLocation
+								{!isLocationVerified
+									? "위치 인증을 완료해주세요"
+									: userLocation
 									? regionLoading
 										? "지역 확인 중..."
 										: displayRegion

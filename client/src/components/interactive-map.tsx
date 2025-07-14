@@ -4,11 +4,12 @@ import { Heart } from "lucide-react";
 import {
 	MapContainer,
 	TileLayer,
-	CircleMarker,
+	Marker,
 	Popup,
 	useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import L from "leaflet";
 import type { Region, Message as MessageType } from "@shared/schema";
 import { useState } from "react";
 
@@ -36,6 +37,13 @@ export function InteractiveMap({
 	// fetch messages
 	const { data: allMessages = [] } = useQuery<MessageType[]>({
 		queryKey: ["/api/messages"],
+	});
+	// Custom mugunghwa icon for markers
+	const mugunghwaIcon = new L.Icon({
+		iconUrl: "/images/mugunghwa.png",
+		iconSize: [32, 32],
+		iconAnchor: [16, 32],
+		popupAnchor: [0, -32],
 	});
 
 	// Group messages by exact latitude, longitude
@@ -82,14 +90,10 @@ export function InteractiveMap({
 						if (messages.length === 1) {
 							const msg = messages[0];
 							return (
-								<CircleMarker
+								<Marker
 									key={msg.id}
-									center={[baseLat, baseLng]}
-									radius={6}
-									pathOptions={{
-										color: "#FF69B4",
-										fillOpacity: 0.8,
-									}}
+									position={[baseLat, baseLng]}
+									icon={mugunghwaIcon}
 									eventHandlers={{
 										click: (e) => {
 											e.originalEvent.stopPropagation();
@@ -150,7 +154,7 @@ export function InteractiveMap({
 											</div>
 										</div>
 									</Popup>
-								</CircleMarker>
+								</Marker>
 							);
 						}
 						// multiple messages: spread in circle
@@ -161,14 +165,10 @@ export function InteractiveMap({
 							const lat = baseLat + Math.sin(angle) * offset;
 							const lng = baseLng + Math.cos(angle) * offset;
 							return (
-								<CircleMarker
+								<Marker
 									key={msg.id}
-									center={[lat, lng]}
-									radius={6}
-									pathOptions={{
-										color: "#FF69B4",
-										fillOpacity: 0.8,
-									}}
+									position={[lat, lng]}
+									icon={mugunghwaIcon}
 									eventHandlers={{
 										click: (e) => {
 											e.originalEvent.stopPropagation();
@@ -229,7 +229,7 @@ export function InteractiveMap({
 											</div>
 										</div>
 									</Popup>
-								</CircleMarker>
+								</Marker>
 							);
 						});
 					})}

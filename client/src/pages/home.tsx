@@ -255,7 +255,11 @@ export default function Home() {
 				<DialogContent className="sm:max-w-md">
 					<MessageForm
 						userLocation={userLocation}
-						onSuccess={() => setIsMessageFormOpen(false)}
+						onSuccess={(newMessage) => {
+							setIsMessageFormOpen(false);
+							setTargetMessage(newMessage);
+							scrollToSection("map");
+						}}
 					/>
 				</DialogContent>
 			</Dialog>

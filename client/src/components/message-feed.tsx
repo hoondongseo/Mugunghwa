@@ -11,12 +11,14 @@ interface MessageFeedProps {
 	selectedRegion?: string | null;
 	likedIds: Set<number>;
 	onToggleLike: (id: number) => void;
+	onMessageClick?: (message: Message) => void;
 }
 
 export function MessageFeed({
 	selectedRegion,
 	likedIds,
 	onToggleLike,
+	onMessageClick,
 }: MessageFeedProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [activeFilter, setActiveFilter] = useState<
@@ -132,7 +134,8 @@ export function MessageFeed({
 					{filteredMessages().map((message) => (
 						<Card
 							key={message.id}
-							className="hover:shadow-lg transition-shadow"
+							className="hover:shadow-lg transition-shadow cursor-pointer"
+							onClick={() => onMessageClick?.(message)}
 						>
 							<CardContent className="p-6">
 								<div className="flex items-center mb-4">

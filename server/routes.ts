@@ -10,10 +10,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 		try {
 			const limit = parseInt(req.query.limit as string) || 50;
 			const offset = parseInt(req.query.offset as string) || 0;
-			const messages = await storage.getApprovedMessages(limit, offset);
+			const messages = await storage.getMessages(limit, offset); // fetch all messages, not only approved
 			res.json(messages);
 		} catch (error) {
-			res.status(500).json({ error: "Failed to fetch messages" });
+			console.error("Error in GET /api/messages:", error);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to fetch messages",
+			});
 		}
 	});
 
@@ -55,13 +61,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			const message = await storage.createMessage(validatedData);
 			res.status(201).json(message);
 		} catch (error) {
+			console.error("Error in POST /api/messages:", error);
 			if (error instanceof z.ZodError) {
 				res.status(400).json({
 					error: "Validation failed",
 					details: error.errors,
 				});
 			} else {
-				res.status(500).json({ error: "Failed to create message" });
+				res.status(500).json({
+					error:
+						error instanceof Error
+							? error.message
+							: "Failed to create message",
+				});
 			}
 		}
 	});
@@ -79,7 +91,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			}
 			res.json(message);
 		} catch (error) {
-			res.status(500).json({ error: "Failed to like message" });
+			console.error(
+				`Error in POST /api/messages/:id/like - id=${req.params.id}:`,
+				error
+			);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to like message",
+			});
 		}
 	});
 	// Unlike a message
@@ -95,7 +116,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			}
 			res.json(message);
 		} catch (error) {
-			res.status(500).json({ error: "Failed to unlike message" });
+			console.error(
+				`Error in POST /api/messages/:id/unlike - id=${req.params.id}:`,
+				error
+			);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to unlike message",
+			});
 		}
 	});
 
@@ -127,7 +157,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 				regionStats,
 			});
 		} catch (error) {
-			res.status(500).json({ error: "Failed to fetch statistics" });
+			console.error("Error in GET /api/statistics:", error);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to fetch statistics",
+			});
 		}
 	});
 

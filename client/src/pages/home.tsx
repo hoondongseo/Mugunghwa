@@ -17,6 +17,8 @@ export default function Home() {
 	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 	// Track liked message IDs across map and feed
 	const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+	// Coordinates to center map on selected message
+	const [targetMessage, setTargetMessage] = useState<Message | null>(null);
 	// Load liked IDs from localStorage
 	useEffect(() => {
 		const stored = localStorage.getItem("likedIds");
@@ -103,6 +105,11 @@ export default function Home() {
 		}
 	};
 
+	const handleMessageClick = (message: Message) => {
+		setTargetMessage(message);
+		scrollToSection("map");
+	};
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			{/* Header */}
@@ -172,6 +179,7 @@ export default function Home() {
 						userLocation={userLocation}
 						likedIds={likedIds}
 						onToggleLike={handleToggleLike}
+						targetMessage={targetMessage || undefined}
 					/>
 				</div>
 			</section>
@@ -187,6 +195,7 @@ export default function Home() {
 					selectedRegion={selectedRegion}
 					likedIds={likedIds}
 					onToggleLike={handleToggleLike}
+					onMessageClick={handleMessageClick}
 				/>
 			</section>
 

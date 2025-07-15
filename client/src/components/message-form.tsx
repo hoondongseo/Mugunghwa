@@ -279,8 +279,8 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 				<Alert>
 					<AlertCircle className="h-4 w-4" />
 					<AlertDescription>
-						위치 정보를 허용해주세요. 메시지는 현재 위치에 무궁화로
-						표시됩니다.
+						위치 정보 사용 안내: 메시지 작성 시 귀하의
+						위치(시/군/구)에 무궁화가 피어납니다.
 					</AlertDescription>
 				</Alert>
 			)}

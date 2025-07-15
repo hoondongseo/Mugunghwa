@@ -60,7 +60,12 @@ export function MessageFeed({
 					  )
 					: baseMessages;
 			default:
-				return baseMessages;
+				// 기본(default)인 '전체' 필터에서도 최신순으로 정렬
+				return [...baseMessages].sort(
+					(a, b) =>
+						new Date(b.createdAt!).getTime() -
+						new Date(a.createdAt!).getTime()
+				);
 		}
 	};
 
@@ -162,7 +167,10 @@ export function MessageFeed({
 									<Button
 										variant="ghost"
 										size="sm"
-										onClick={() => onToggleLike(message.id)}
+										onClick={(e) => {
+											e.stopPropagation();
+											onToggleLike(message.id);
+										}}
 										className="hover:text-red-600 p-0"
 										aria-label={
 											likedIds.has(message.id)

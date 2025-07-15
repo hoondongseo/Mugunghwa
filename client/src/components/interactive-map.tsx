@@ -171,14 +171,23 @@ function MapUpdater({
 	const map = useMap();
 	useEffect(() => {
 		if (!message.latitude || !message.longitude) return;
-		const target: [number, number] = [
-			parseFloat(message.latitude),
-			parseFloat(message.longitude),
-		];
-		map.setView(target);
+		// Parse raw coordinates
+		const rawLat = parseFloat(message.latitude);
+		const rawLng = parseFloat(message.longitude);
+		const rawTarget: [number, number] = [rawLat, rawLng];
+		// Determine center target: at max zoom use jittered marker position
 		const currentZoom = map.getZoom();
-		const duration = currentZoom === map.getMinZoom() ? 1.0 : 0.5;
-		map.flyTo(target, map.getMaxZoom(), { animate: true, duration });
+		const maxZoom = map.getMaxZoom();
+		const marker = markerRefs.current[message.id];
+		const centerTarget: [number, number] =
+			currentZoom === maxZoom && marker
+				? [marker.getLatLng().lat, marker.getLatLng().lng]
+				: rawTarget;
+		map.setView(centerTarget);
+		// Determine duration: slower if fully zoomed out, otherwise faster
+		const minZoom = map.getMinZoom();
+		const duration = currentZoom === minZoom ? 1.0 : 0.5;
+		map.flyTo(centerTarget, maxZoom, { animate: true, duration });
 		map.once("moveend", () => {
 			const marker = markerRefs.current[message.id];
 			if (marker) marker.openPopup();

@@ -38,6 +38,10 @@ export interface IStorage {
 	getRegionStats(): Promise<
 		Array<{ region: string; messageCount: number; percentage: number }>
 	>;
+	// Update content of an existing message
+	updateMessage(id: number, content: string): Promise<Message | undefined>;
+	// Delete a message by id
+	deleteMessage(id: number): Promise<void>;
 }
 
 export const storage: IStorage = {
@@ -165,5 +169,16 @@ export const storage: IStorage = {
 			percentage:
 				totalCount > 0 ? (r.messageCount / totalCount) * 100 : 0,
 		}));
+	},
+	async updateMessage(id: number, content: string) {
+		const [msg] = await db
+			.update(messages)
+			.set({ content })
+			.where(eq(messages.id, id))
+			.returning();
+		return msg;
+	},
+	async deleteMessage(id: number) {
+		await db.delete(messages).where(eq(messages.id, id));
 	},
 };

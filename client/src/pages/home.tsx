@@ -13,6 +13,11 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, MapPin, Heart } from "lucide-react";
 
 export default function Home() {
+	// Single message per device
+	const [myMessageId, setMyMessageId] = useState<number | null>(() => {
+		const id = localStorage.getItem("myMessageId");
+		return id ? Number(id) : null;
+	});
 	const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
 	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 	// Track liked message IDs across map and feed
@@ -110,6 +115,51 @@ export default function Home() {
 		scrollToSection("map");
 	};
 
+	// Message form success: save ID and fly to map
+	const handleFormSuccess = (newMessage: Message) => {
+		localStorage.setItem("myMessageId", String(newMessage.id));
+		setMyMessageId(newMessage.id);
+		setIsMessageFormOpen(false);
+		setTargetMessage(newMessage);
+		scrollToSection("map");
+	};
+
+	// Update own message
+	const handleUpdateMessage = async (id: number, content: string) => {
+		try {
+			const res = await apiRequest(
+				"PUT",
+				`http://localhost:5000/api/messages/${id}`,
+				{ content }
+			);
+			const updated: Message = await res.json();
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				old ? old.map((m) => (m.id === id ? updated : m)) : []
+			);
+			// Refresh from server to sync any additional fields
+			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
+	// Delete own message
+	const handleDeleteMessage = async (id: number) => {
+		try {
+			await apiRequest(
+				"DELETE",
+				`http://localhost:5000/api/messages/${id}`
+			);
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				old ? old.filter((m) => m.id !== id) : []
+			);
+			localStorage.removeItem("myMessageId");
+			setMyMessageId(null);
+		} catch (err) {
+			console.error(err);
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			{/* Header */}
@@ -196,6 +246,9 @@ export default function Home() {
 					likedIds={likedIds}
 					onToggleLike={handleToggleLike}
 					onMessageClick={handleMessageClick}
+					myMessageId={myMessageId}
+					onUpdateMessage={handleUpdateMessage}
+					onDeleteMessage={handleDeleteMessage}
 				/>
 			</section>
 
@@ -253,29 +306,33 @@ export default function Home() {
 				onOpenChange={setIsMessageFormOpen}
 			>
 				<DialogContent className="sm:max-w-md">
-					<MessageForm
-						userLocation={userLocation}
-						onSuccess={(newMessage) => {
-							setIsMessageFormOpen(false);
-							setTargetMessage(newMessage);
-							scrollToSection("map");
-						}}
-					/>
+					{myMessageId ? (
+						<p className="text-center text-gray-500">
+							이미 메시지를 작성하셨습니다.
+						</p>
+					) : (
+						<MessageForm
+							userLocation={userLocation}
+							onSuccess={handleFormSuccess}
+						/>
+					)}
 				</DialogContent>
 			</Dialog>
 
 			{/* Floating Action Button */}
-			<Dialog>
-				<DialogTrigger asChild>
-					<Button
-						onClick={handleOpenMessageForm}
-						className="fixed bottom-6 right-6 bg-red-600 hover:bg-red-700 text-white p-4 rounded-full shadow-lg z-40"
-						size="lg"
-					>
-						<Plus className="h-6 w-6" />
-					</Button>
-				</DialogTrigger>
-			</Dialog>
+			{!myMessageId && (
+				<Dialog>
+					<DialogTrigger asChild>
+						<Button
+							onClick={handleOpenMessageForm}
+							className="fixed bottom-6 right-6 bg-red-600 hover:bg-red-700 text-white p-4 rounded-full shadow-lg z-40"
+							size="lg"
+						>
+							<Plus className="h-6 w-6" />
+						</Button>
+					</DialogTrigger>
+				</Dialog>
+			)}
 		</div>
 	);
 }

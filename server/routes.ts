@@ -129,6 +129,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 		}
 	});
 
+	// Update a message's content
+	app.put("/api/messages/:id", async (req, res) => {
+		try {
+			const id = parseInt(req.params.id);
+			const { content } = req.body;
+			if (isNaN(id) || typeof content !== "string") {
+				return res.status(400).json({ error: "Invalid request data" });
+			}
+			const updated = await storage.updateMessage(id, content);
+			if (!updated) {
+				return res.status(404).json({ error: "Message not found" });
+			}
+			res.json(updated);
+		} catch (error) {
+			console.error(
+				`Error in PUT /api/messages/:id - id=${req.params.id}:`,
+				error
+			);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to update message",
+			});
+		}
+	});
+
+	// Delete a message
+	app.delete("/api/messages/:id", async (req, res) => {
+		try {
+			const id = parseInt(req.params.id);
+			if (isNaN(id)) {
+				return res.status(400).json({ error: "Invalid message ID" });
+			}
+			await storage.deleteMessage(id);
+			res.status(204).end();
+		} catch (error) {
+			console.error(
+				`Error in DELETE /api/messages/:id - id=${req.params.id}:`,
+				error
+			);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to delete message",
+			});
+		}
+	});
+
 	// Get all regions
 	app.get("/api/regions", async (req, res) => {
 		try {

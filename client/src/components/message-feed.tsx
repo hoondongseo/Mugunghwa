@@ -4,7 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Heart, MapPin, Clock, TrendingUp } from "lucide-react";
+import {
+	Search,
+	Heart,
+	MapPin,
+	Clock,
+	TrendingUp,
+	Edit2,
+	Trash2,
+} from "lucide-react";
 import type { Message } from "@shared/schema";
 
 interface MessageFeedProps {
@@ -12,6 +20,12 @@ interface MessageFeedProps {
 	likedIds: Set<number>;
 	onToggleLike: (id: number) => void;
 	onMessageClick?: (message: Message) => void;
+	// ID of the message created on this device
+	myMessageId?: number | null;
+	// Handler to update a message content
+	onUpdateMessage?: (id: number, content: string) => void;
+	// Handler to delete a message
+	onDeleteMessage?: (id: number) => void;
 }
 
 export function MessageFeed({
@@ -19,6 +33,9 @@ export function MessageFeed({
 	likedIds,
 	onToggleLike,
 	onMessageClick,
+	myMessageId,
+	onUpdateMessage,
+	onDeleteMessage,
 }: MessageFeedProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [activeFilter, setActiveFilter] = useState<
@@ -142,7 +159,56 @@ export function MessageFeed({
 							className="hover:shadow-lg transition-shadow cursor-pointer"
 							onClick={() => onMessageClick?.(message)}
 						>
-							<CardContent className="p-6">
+							<CardContent className="p-6 relative">
+								{/* Edit/Delete for own message: top-right corner */}
+								{message.id === myMessageId && (
+									<div className="absolute top-2 right-4 flex flex-row space-x-4">
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={(e) => {
+												e.stopPropagation();
+												const newContent = prompt(
+													"메시지를 수정하세요:",
+													message.content
+												);
+												if (
+													newContent !== null &&
+													newContent.trim() !== ""
+												) {
+													onUpdateMessage?.(
+														message.id,
+														newContent.trim()
+													);
+												}
+											}}
+											className="hover:text-blue-600 p-0"
+											aria-label="수정"
+										>
+											<Edit2 className="h-4 w-4" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											onClick={(e) => {
+												e.stopPropagation();
+												if (
+													confirm(
+														"이 메시지를 삭제하시겠습니까?"
+													)
+												) {
+													onDeleteMessage?.(
+														message.id
+													);
+												}
+											}}
+											className="hover:text-gray-600 p-0"
+											aria-label="삭제"
+										>
+											<Trash2 className="h-4 w-4" />
+										</Button>
+									</div>
+								)}
 								<div className="flex items-center mb-4">
 									<div className="w-10 h-10 bg-gradient-to-br from-red-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
 										🌺

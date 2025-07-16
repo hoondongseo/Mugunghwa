@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { InteractiveMap } from "@/components/interactive-map";
 import { MessageForm } from "@/components/message-form";
 import { MessageFeed } from "@/components/message-feed";
@@ -7,158 +9,390 @@ import { LocationBanner } from "@/components/location-banner";
 import { useLocation } from "@/hooks/use-location";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Flag, MapPin, Heart } from "lucide-react";
+import { Plus, MapPin, Heart } from "lucide-react";
+import type { Message } from "@shared/schema";
+import {
+	Select,
+	SelectTrigger,
+	SelectValue,
+	SelectContent,
+	SelectItem,
+} from "@/components/ui/select";
 
 export default function Home() {
-  const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
-  const { userLocation, requestLocation, hasPermission } = useLocation();
+	// Single message per device
+	const [myMessageId, setMyMessageId] = useState<number | null>(() => {
+		const id = localStorage.getItem("myMessageId");
+		return id ? Number(id) : null;
+	});
+	// If the message was deleted (e.g., via admin), clear stored ID
+	useEffect(() => {
+		if (myMessageId) {
+			apiRequest("GET", "/api/messages").then((res) =>
+				res.json().then((msgs: Message[]) => {
+					if (!msgs.find((m) => m.id === myMessageId)) {
+						localStorage.removeItem("myMessageId");
+						setMyMessageId(null);
+					}
+				})
+			);
+		}
+	}, [myMessageId]);
+	const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
+	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+	// Track liked message IDs across map and feed
+	const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+	// Coordinates to center map on selected message
+	const [targetMessage, setTargetMessage] = useState<Message | null>(null);
+	// Load liked IDs from localStorage
+	useEffect(() => {
+		const stored = localStorage.getItem("likedIds");
+		if (stored) {
+			try {
+				const arr = JSON.parse(stored) as number[];
+				setLikedIds(new Set(arr));
+			} catch {}
+		}
+	}, []);
+	const queryClient = useQueryClient();
 
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-  };
+	const handleToggleLike = async (id: number) => {
+		// Determine current liked state from local likedIds
+		const isLiked = likedIds.has(id);
+		const newSet = new Set(likedIds);
+		const delta = isLiked ? -1 : 1;
+		// Optimistic update for UI responsiveness
+		if (isLiked) newSet.delete(id);
+		else newSet.add(id);
+		setLikedIds(newSet);
+		localStorage.setItem("likedIds", JSON.stringify(Array.from(newSet)));
+		// Optimistically adjust likes count
+		queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+			(old || []).map((msg) =>
+				msg.id === id
+					? { ...msg, likes: Math.max(0, (msg.likes ?? 0) + delta) }
+					: msg
+			)
+		);
+		try {
+			// Send like/unlike to server and get updated message
+			const response = await apiRequest(
+				"POST",
+				`/api/messages/${id}/${isLiked ? "unlike" : "like"}`
+			);
+			const updatedMsg: Message = await response.json();
+			// Override optimistic count with server value
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				(old || []).map((msg) => (msg.id === id ? updatedMsg : msg))
+			);
+			// Refetch to sync UI immediately
+			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+		} catch (error) {
+			console.error(error);
+			// Revert optimistic update on error
+			const revertSet = new Set(newSet);
+			if (isLiked) revertSet.add(id);
+			else revertSet.delete(id);
+			setLikedIds(revertSet);
+			localStorage.setItem(
+				"likedIds",
+				JSON.stringify(Array.from(revertSet))
+			);
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				(old || []).map((msg) =>
+					msg.id === id
+						? {
+								...msg,
+								likes: Math.max(0, (msg.likes ?? 0) - delta),
+						  }
+						: msg
+				)
+			);
+		}
+	};
+	const { userLocation, requestLocation, hasPermission } = useLocation();
 
-  const handleOpenMessageForm = () => {
-    if (!hasPermission) {
-      requestLocation();
-    } else {
-      setIsMessageFormOpen(true);
-    }
-  };
+	const scrollToSection = (sectionId: string) => {
+		const element = document.getElementById(sectionId);
+		if (element) {
+			element.scrollIntoView({ behavior: "smooth" });
+		}
+	};
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b-2 border-red-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center py-4">
-            <div className="flex items-center space-x-3">
-              <Flag className="text-red-600 h-8 w-8" />
-              <h1 className="text-2xl font-bold text-gray-900">대한민국 응원 메시지</h1>
-            </div>
-          </div>
-        </div>
-      </header>
+	const handleOpenMessageForm = () => {
+		if (!hasPermission) {
+			requestLocation();
+		} else {
+			setIsMessageFormOpen(true);
+		}
+	};
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-red-600 to-blue-600 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">함께 피워나가는 무궁화</h2>
-          <p className="text-xl md:text-2xl mb-8 opacity-90">
-            윤석열 대통령과 대한민국을 향한 응원 메시지로 전국에 무궁화를 피워보세요
-          </p>
-          <div className="flex justify-center space-x-4">
-            <Button
-              onClick={() => scrollToSection("map")}
-              className="bg-white text-red-600 hover:bg-gray-100 px-8 py-3 text-lg"
-            >
-              <MapPin className="mr-2 h-5 w-5" />
-              지도 보기
-            </Button>
-            <Button
-              onClick={handleOpenMessageForm}
-              variant="outline"
-              className="border-2 border-white text-white hover:bg-white hover:text-red-600 px-8 py-3 text-lg"
-            >
-              <Heart className="mr-2 h-5 w-5" />
-              메시지 남기기
-            </Button>
-          </div>
-        </div>
-      </section>
+	const handleMessageClick = (message: Message) => {
+		setTargetMessage(message);
+		scrollToSection("map");
+	};
 
-      {/* Location Banner */}
-      <LocationBanner />
+	// Message form success: save ID and fly to map
+	const handleFormSuccess = (newMessage: Message) => {
+		localStorage.setItem("myMessageId", String(newMessage.id));
+		setMyMessageId(newMessage.id);
+		setIsMessageFormOpen(false);
+		setTargetMessage(newMessage);
+		scrollToSection("map");
+	};
 
-      {/* Interactive Map Section */}
-      <section id="map" className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">전국 응원 현황</h3>
-            <p className="text-lg text-gray-600">각 지역의 무궁화를 클릭하면 응원 메시지를 확인할 수 있습니다</p>
-          </div>
-          <InteractiveMap
-            onRegionSelect={setSelectedRegion}
-            userLocation={userLocation}
-          />
-        </div>
-      </section>
+	// Update own message
+	const handleUpdateMessage = async (id: number, content: string) => {
+		try {
+			const res = await apiRequest(
+				"PUT",
+				`http://localhost:5000/api/messages/${id}`,
+				{ content }
+			);
+			const updated: Message = await res.json();
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				old ? old.map((m) => (m.id === id ? updated : m)) : []
+			);
+			// Refresh from server to sync any additional fields
+			queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+		} catch (err) {
+			console.error(err);
+		}
+	};
 
-      {/* Statistics Section */}
-      <section id="statistics" className="py-12 bg-gray-50">
-        <Statistics />
-      </section>
+	// Delete own message
+	const handleDeleteMessage = async (id: number) => {
+		try {
+			await apiRequest(
+				"DELETE",
+				`http://localhost:5000/api/messages/${id}`
+			);
+			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
+				old ? old.filter((m) => m.id !== id) : []
+			);
+			localStorage.removeItem("myMessageId");
+			setMyMessageId(null);
+		} catch (err) {
+			console.error(err);
+		}
+	};
 
-      {/* Messages Feed Section */}
-      <section id="messages" className="py-12 bg-white">
-        <MessageFeed selectedRegion={selectedRegion} />
-      </section>
+	// Fetch regions for dropdown menu
+	const { data: regionList = [] } = useQuery<{ name: string }[]>({
+		queryKey: ["/api/regions"],
+		queryFn: () =>
+			apiRequest("GET", "/api/regions").then((res) => res.json()),
+	});
+	// Fetch all messages to derive available regions
+	const { data: allMessages = [] } = useQuery<Message[]>({
+		queryKey: ["/api/messages"],
+		staleTime: 1000 * 60,
+		refetchOnWindowFocus: false,
+	});
+	// Compute distinct regions present in messages
+	const availableRegions = useMemo(() => {
+		const set = new Set<string>();
+		allMessages.forEach((m) => m.region && set.add(m.region));
+		return Array.from(set).sort();
+	}, [allMessages]);
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <Flag className="text-red-600 h-8 w-8" />
-                <h3 className="text-xl font-bold">대한민국 응원 메시지</h3>
-              </div>
-              <p className="text-gray-400">
-                전국 곳곳에서 피어나는 무궁화와 함께 대한민국의 밝은 미래를 응원합니다.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">개인정보 보호</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>• 위치 정보는 시/군/구 단위로만 수집</li>
-                <li>• 개인 식별 정보는 저장하지 않음</li>
-                <li>• 메시지는 검토 후 게시</li>
-                <li>• 부적절한 내용은 자동 필터링</li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">문의사항</h4>
-              <div className="text-sm text-gray-400 space-y-2">
-                <p>이메일: support@korea-support.gov.kr</p>
-                <p>전화: 02-1234-5678</p>
-                <p>운영시간: 평일 09:00 - 18:00</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; 2024 대한민국 응원 메시지. 모든 권리 보유.</p>
-          </div>
-        </div>
-      </footer>
+	return (
+		<div className="min-h-screen bg-gray-50">
+			{/* Header */}
+			<header className="bg-white shadow-sm border-b-2 border-red-600">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="flex justify-center items-center py-4">
+						<div className="flex items-center space-x-3">
+							<img
+								src="/images/yoon_again.png"
+								alt="윤어게인"
+								className="h-12 w-12"
+							/>
+							<h1 className="text-2xl font-bold text-gray-900">
+								윤카 응원 메시지 - 국민의 목소리를 지도에 담다.
+							</h1>
+						</div>
+					</div>
+				</div>
+			</header>
 
-      {/* Message Form Modal */}
-      <Dialog open={isMessageFormOpen} onOpenChange={setIsMessageFormOpen}>
-        <DialogContent className="sm:max-w-md">
-          <MessageForm
-            userLocation={userLocation}
-            onSuccess={() => setIsMessageFormOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+			{/* Hero Section */}
+			<section className="bg-gradient-to-r from-red-600 to-blue-600 text-white py-12">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+					<h2 className="text-4xl md:text-5xl font-bold mb-4">
+						함께 피워나가는 무궁화
+					</h2>
+					<p className="text-xl md:text-2xl mb-8 opacity-90">
+						윤석열 대통령과 대한민국을 향한 응원 메시지로 전국에
+						무궁화를 피워보세요
+					</p>
+					<div className="flex justify-center space-x-4">
+						<Button
+							onClick={() => scrollToSection("map")}
+							className="bg-white text-red-600 hover:bg-gray-100 px-8 py-3 text-lg"
+						>
+							<MapPin className="mr-2 h-5 w-5" />
+							지도 보기
+						</Button>
+						<Button
+							onClick={handleOpenMessageForm}
+							className="bg-white text-red-600 hover:bg-gray-100 px-8 py-3 text-lg"
+						>
+							<Heart className="mr-2 h-5 w-5" />
+							메시지 남기기
+						</Button>
+					</div>
+				</div>
+			</section>
 
-      {/* Floating Action Button */}
-      <Dialog>
-        <DialogTrigger asChild>
-          <Button
-            onClick={handleOpenMessageForm}
-            className="fixed bottom-6 right-6 bg-red-600 hover:bg-red-700 text-white p-4 rounded-full shadow-lg z-40"
-            size="lg"
-          >
-            <Plus className="h-6 w-6" />
-          </Button>
-        </DialogTrigger>
-      </Dialog>
-    </div>
-  );
+			{/* Location Banner */}
+			<LocationBanner />
+
+			{/* Interactive Map Section */}
+			<section id="map" className="py-12 bg-white">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="text-center mb-8">
+						<h3 className="text-3xl font-bold text-gray-900 mb-4">
+							전국 응원 현황
+						</h3>
+						<p className="text-lg text-gray-600">
+							각 지역의 무궁화를 클릭하면 응원 메시지를 확인할 수
+							있습니다
+						</p>
+					</div>
+					<InteractiveMap
+						onRegionSelect={setSelectedRegion}
+						userLocation={userLocation}
+						likedIds={likedIds}
+						onToggleLike={handleToggleLike}
+						targetMessage={targetMessage || undefined}
+					/>
+				</div>
+			</section>
+
+			{/* Statistics Section */}
+			<section id="statistics" className="py-12 bg-gray-50">
+				<Statistics />
+			</section>
+
+			{/* Region Dropdown */}
+			<section className="py-4 bg-white mb-8">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<Select
+						value={selectedRegion ?? "all"}
+						onValueChange={(value) =>
+							setSelectedRegion(value === "all" ? null : value)
+						}
+					>
+						<SelectTrigger className="w-full max-w-xs mb-4">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">전체 지역</SelectItem>
+							{availableRegions.map((region) => (
+								<SelectItem key={region} value={region}>
+									{region}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			</section>
+
+			{/* Messages Feed Section */}
+			<section id="messages" className="py-12 bg-white">
+				<MessageFeed
+					selectedRegion={selectedRegion}
+					likedIds={likedIds}
+					onToggleLike={handleToggleLike}
+					onMessageClick={handleMessageClick}
+					myMessageId={myMessageId}
+					onUpdateMessage={handleUpdateMessage}
+					onDeleteMessage={handleDeleteMessage}
+				/>
+			</section>
+
+			{/* Footer */}
+			<footer className="bg-gray-900 text-white py-12">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+						<div>
+							<div className="flex items-center space-x-3 mb-4">
+								<img
+									src="/images/yoon_again.png"
+									alt="윤어게인"
+									className="h-12 w-12"
+								/>
+								<h3 className="text-xl font-bold">
+									윤카 응원 메시지
+								</h3>
+							</div>
+							<p className="text-gray-400">
+								전국 곳곳에서 피어나는 무궁화와 함께
+								자유대한민국의 밝은 미래를 응원합니다.
+							</p>
+						</div>
+
+						<div>
+							<h4 className="font-semibold mb-4">
+								개인정보 보호
+							</h4>
+							<ul className="space-y-2 text-sm text-gray-400">
+								<li>• 개인 식별 정보는 저장하지 않음</li>
+								<li>• 부적절한 내용은 자동 필터링</li>
+							</ul>
+						</div>
+
+						<div>
+							<h4 className="font-semibold mb-4">문의사항</h4>
+							<div className="text-sm text-gray-400 space-y-2">
+								<p>이메일: younghotsdh@gmail.com</p>
+								<p>운영시간: 평일 09:00 - 18:00</p>
+							</div>
+						</div>
+					</div>
+
+					<div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-400">
+						<p>
+							&copy; 2025 윤카 응원 메시지. All Rights Reserved.
+						</p>
+					</div>
+				</div>
+			</footer>
+
+			{/* Message Form Modal */}
+			<Dialog
+				open={isMessageFormOpen}
+				onOpenChange={setIsMessageFormOpen}
+			>
+				<DialogContent className="sm:max-w-md">
+					{myMessageId ? (
+						<p className="text-center text-gray-500">
+							이미 메시지를 작성하셨습니다.
+						</p>
+					) : (
+						<MessageForm
+							userLocation={userLocation}
+							onSuccess={handleFormSuccess}
+						/>
+					)}
+				</DialogContent>
+			</Dialog>
+
+			{/* Floating Action Button */}
+			{!myMessageId && (
+				<Dialog>
+					<DialogTrigger asChild>
+						<Button
+							onClick={handleOpenMessageForm}
+							className="fixed bottom-6 right-6 bg-red-600 hover:bg-red-700 text-white p-4 rounded-full shadow-lg z-40"
+							size="lg"
+						>
+							<Plus className="h-6 w-6" />
+						</Button>
+					</DialogTrigger>
+				</Dialog>
+			)}
+		</div>
+	);
 }

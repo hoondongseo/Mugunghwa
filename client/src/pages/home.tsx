@@ -209,7 +209,7 @@ export default function Home() {
 								className="h-12 w-12"
 							/>
 							<h1 className="text-2xl font-bold text-gray-900">
-								윤카 응원 메시지
+								윤카 응원 메시지 - 국민의 목소리를 지도에 담다.
 							</h1>
 						</div>
 					</div>

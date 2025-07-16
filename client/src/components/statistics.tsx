@@ -131,29 +131,32 @@ export function Statistics() {
 				</CardHeader>
 				<CardContent>
 					<div className="space-y-4">
-						{cityStats.map((region, index) => (
+						{cityStats.slice(0, 10).map((region, index) => (
 							<div
 								key={region.region}
 								className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
 							>
 								<div className="flex items-center">
+									{/* Emphasize top 3 ranks */}
 									<Badge
-										variant={
-											index === 0
-												? "destructive"
+										className={
+											`flex items-center justify-center w-8 h-8 text-sm font-bold mr-4 ` +
+											(index === 0
+												? "bg-yellow-400 text-white"
 												: index === 1
-												? "default"
-												: "secondary"
+												? "bg-gray-400 text-white"
+												: index === 2
+												? "bg-orange-400 text-white"
+												: "bg-gray-200 text-gray-700")
 										}
-										className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold mr-4"
 									>
 										{index + 1}
 									</Badge>
-									<div>
+									<div className="flex flex-col">
 										<div className="font-semibold text-gray-900">
 											{region.region}
 										</div>
-										<div className="text-sm text-gray-600">
+										<div className="text-sm text-gray-600 mt-1">
 											{region.messageCount}개 무궁화
 										</div>
 									</div>

@@ -127,13 +127,12 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 			// Filter content for inappropriate language
 			const isContentAppropriate = filterContent(data.content);
 			if (!isContentAppropriate) {
-				const toastInstance = toast({
-					title: "부적절한 내용",
-					description: "메시지에 부적절한 내용이 포함되어 있습니다.",
-					variant: "destructive",
+				// Show inline form error for content field
+				form.setError("content", {
+					type: "manual",
+					message:
+						"부적절한 내용이 포함되어 있습니다. 내용을 수정해주세요.",
 				});
-				// Dismiss this toast after 1 second
-				setTimeout(() => toastInstance.dismiss(), 2000);
 				setIsSubmitting(false);
 				return;
 			}

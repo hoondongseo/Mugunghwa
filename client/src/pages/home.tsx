@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { InteractiveMap } from "@/components/interactive-map";
-import type { Message } from "@shared/schema";
 import { MessageForm } from "@/components/message-form";
 import { MessageFeed } from "@/components/message-feed";
 import { Statistics } from "@/components/statistics";
@@ -11,6 +10,14 @@ import { useLocation } from "@/hooks/use-location";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, MapPin, Heart } from "lucide-react";
+import type { Message } from "@shared/schema";
+import {
+	Select,
+	SelectTrigger,
+	SelectValue,
+	SelectContent,
+	SelectItem,
+} from "@/components/ui/select";
 
 export default function Home() {
 	// Single message per device
@@ -18,6 +25,19 @@ export default function Home() {
 		const id = localStorage.getItem("myMessageId");
 		return id ? Number(id) : null;
 	});
+	// If the message was deleted (e.g., via admin), clear stored ID
+	useEffect(() => {
+		if (myMessageId) {
+			apiRequest("GET", "/api/messages").then((res) =>
+				res.json().then((msgs: Message[]) => {
+					if (!msgs.find((m) => m.id === myMessageId)) {
+						localStorage.removeItem("myMessageId");
+						setMyMessageId(null);
+					}
+				})
+			);
+		}
+	}, [myMessageId]);
 	const [isMessageFormOpen, setIsMessageFormOpen] = useState(false);
 	const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
 	// Track liked message IDs across map and feed
@@ -37,11 +57,8 @@ export default function Home() {
 	const queryClient = useQueryClient();
 
 	const handleToggleLike = async (id: number) => {
-		// Determine current liked state from message likes (covers new messages)
-		const currentMsg = queryClient
-			.getQueryData<Message[]>(["/api/messages"])
-			?.find((msg) => msg.id === id);
-		const isLiked = (currentMsg?.likes ?? 0) > 0;
+		// Determine current liked state from local likedIds
+		const isLiked = likedIds.has(id);
 		const newSet = new Set(likedIds);
 		const delta = isLiked ? -1 : 1;
 		// Optimistic update for UI responsiveness
@@ -160,6 +177,25 @@ export default function Home() {
 		}
 	};
 
+	// Fetch regions for dropdown menu
+	const { data: regionList = [] } = useQuery<{ name: string }[]>({
+		queryKey: ["/api/regions"],
+		queryFn: () =>
+			apiRequest("GET", "/api/regions").then((res) => res.json()),
+	});
+	// Fetch all messages to derive available regions
+	const { data: allMessages = [] } = useQuery<Message[]>({
+		queryKey: ["/api/messages"],
+		staleTime: 1000 * 60,
+		refetchOnWindowFocus: false,
+	});
+	// Compute distinct regions present in messages
+	const availableRegions = useMemo(() => {
+		const set = new Set<string>();
+		allMessages.forEach((m) => m.region && set.add(m.region));
+		return Array.from(set).sort();
+	}, [allMessages]);
+
 	return (
 		<div className="min-h-screen bg-gray-50">
 			{/* Header */}
@@ -237,6 +273,30 @@ export default function Home() {
 			{/* Statistics Section */}
 			<section id="statistics" className="py-12 bg-gray-50">
 				<Statistics />
+			</section>
+
+			{/* Region Dropdown */}
+			<section className="py-4 bg-white mb-8">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<Select
+						value={selectedRegion ?? "all"}
+						onValueChange={(value) =>
+							setSelectedRegion(value === "all" ? null : value)
+						}
+					>
+						<SelectTrigger className="w-full max-w-xs mb-4">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">전체 지역</SelectItem>
+							{availableRegions.map((region) => (
+								<SelectItem key={region} value={region}>
+									{region}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</section>
 
 			{/* Messages Feed Section */}

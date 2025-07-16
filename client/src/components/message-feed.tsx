@@ -1,19 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-	Search,
-	Heart,
-	MapPin,
-	Clock,
-	TrendingUp,
-	Edit2,
-	Trash2,
-} from "lucide-react";
+import { Search, Heart, Clock, TrendingUp, Edit2, Trash2 } from "lucide-react";
 import type { Message } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface MessageFeedProps {
 	selectedRegion?: string | null;
@@ -38,8 +31,12 @@ export function MessageFeed({
 	onDeleteMessage,
 }: MessageFeedProps) {
 	const [searchQuery, setSearchQuery] = useState("");
+	// Pagination state: number of pages to show via Load More
+	const PAGE_SIZE = 9;
+	const [page, setPage] = useState(1);
+	const gridRef = useRef<HTMLDivElement>(null);
 	const [activeFilter, setActiveFilter] = useState<
-		"all" | "recent" | "popular" | "region"
+		"all" | "recent" | "popular" | "mine"
 	>("all");
 
 	const { data: messages = [], isLoading } = useQuery<Message[]>({
@@ -56,41 +53,62 @@ export function MessageFeed({
 		enabled: searchQuery.length > 0,
 	});
 
+	// Filter and sort messages
 	const filteredMessages = () => {
-		const baseMessages = searchQuery ? searchResults : messages;
-
+		let baseMessages = searchQuery ? searchResults : messages;
+		// Apply region filter from parent prop
+		if (selectedRegion) {
+			baseMessages = baseMessages.filter(
+				(msg) => msg.region === selectedRegion
+			);
+		}
 		switch (activeFilter) {
 			case "recent":
-				return [...baseMessages].sort(
-					(a, b) =>
-						new Date(b.createdAt!).getTime() -
-						new Date(a.createdAt!).getTime()
-				);
+				return [
+					...baseMessages.sort(
+						(a, b) =>
+							new Date(b.createdAt!).getTime() -
+							new Date(a.createdAt!).getTime()
+					),
+				];
 			case "popular":
-				return [...baseMessages].sort(
-					(a, b) => (b.likes || 0) - (a.likes || 0)
-				);
-			case "region":
-				return selectedRegion
-					? baseMessages.filter(
-							(msg) => msg.region === selectedRegion
-					  )
-					: baseMessages;
+				return [
+					...baseMessages.sort(
+						(a, b) => (b.likes || 0) - (a.likes || 0)
+					),
+				];
+			case "mine":
+				if (myMessageId != null) {
+					const myMsg = baseMessages.find(
+						(msg) => msg.id === myMessageId
+					);
+					return myMsg ? [myMsg] : [];
+				}
+				return [];
 			default:
-				// 기본(default)인 '전체' 필터에서도 최신순으로 정렬
-				return [...baseMessages].sort(
-					(a, b) =>
-						new Date(b.createdAt!).getTime() -
-						new Date(a.createdAt!).getTime()
-				);
+				return [
+					...baseMessages.sort(
+						(a, b) =>
+							new Date(b.createdAt!).getTime() -
+							new Date(a.createdAt!).getTime()
+					),
+				];
 		}
 	};
 
+	// Reset page when filter or search changes
+	useEffect(() => {
+		setPage(1);
+	}, [activeFilter, searchQuery]);
+
+	const visibleMessages = filteredMessages().slice(0, page * PAGE_SIZE);
+
+	// Filter button definitions (including region)
 	const filterButtons = [
 		{ key: "all", label: "전체", icon: null },
 		{ key: "recent", label: "최근", icon: Clock },
 		{ key: "popular", label: "인기", icon: TrendingUp },
-		{ key: "region", label: "지역별", icon: MapPin },
+		{ key: "mine", label: "내가 작성한 메시지", icon: Heart },
 	] as const;
 
 	return (
@@ -152,127 +170,143 @@ export function MessageFeed({
 					))}
 				</div>
 			) : (
-				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-					{filteredMessages().map((message) => (
-						<Card
-							key={message.id}
-							className="hover:shadow-lg transition-shadow cursor-pointer"
-							onClick={() => onMessageClick?.(message)}
-						>
-							<CardContent className="p-6 relative">
-								{/* Edit/Delete for own message: top-right corner */}
-								{message.id === myMessageId && (
-									<div className="absolute top-2 right-4 flex flex-row space-x-4">
-										<Button
-											variant="ghost"
-											size="sm"
-											onClick={(e) => {
-												e.stopPropagation();
-												const newContent = prompt(
-													"메시지를 수정하세요:",
-													message.content
-												);
-												if (
-													newContent !== null &&
-													newContent.trim() !== ""
-												) {
-													onUpdateMessage?.(
-														message.id,
-														newContent.trim()
+				<div>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+						{visibleMessages.map((message) => (
+							<Card
+								key={message.id}
+								className="hover:shadow-lg transition-shadow cursor-pointer"
+								onClick={() => onMessageClick?.(message)}
+							>
+								<CardContent className="p-6 relative">
+									{/* Edit/Delete for own message: top-right corner */}
+									{message.id === myMessageId && (
+										<div className="absolute top-2 right-4 flex flex-row space-x-4">
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={(e) => {
+													e.stopPropagation();
+													const newContent = prompt(
+														"메시지를 수정하세요:",
+														message.content
 													);
-												}
-											}}
-											className="hover:text-blue-600 p-0"
-											aria-label="수정"
-										>
-											<Edit2 className="h-4 w-4" />
-										</Button>
+													if (
+														newContent !== null &&
+														newContent.trim() !== ""
+													) {
+														onUpdateMessage?.(
+															message.id,
+															newContent.trim()
+														);
+													}
+												}}
+												className="hover:text-blue-600 p-0"
+												aria-label="수정"
+											>
+												<Edit2 className="h-4 w-4" />
+											</Button>
+											<Button
+												variant="ghost"
+												size="sm"
+												onClick={(e) => {
+													e.stopPropagation();
+													if (
+														confirm(
+															"이 메시지를 삭제하시겠습니까?"
+														)
+													) {
+														onDeleteMessage?.(
+															message.id
+														);
+													}
+												}}
+												className="hover:text-gray-600 p-0"
+												aria-label="삭제"
+											>
+												<Trash2 className="h-4 w-4" />
+											</Button>
+										</div>
+									)}
+									<div className="flex items-center mb-4">
+										<div className="w-10 h-10 bg-gradient-to-br from-red-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
+											🌺
+										</div>
+										<div>
+											<div className="font-semibold text-gray-900">
+												{message.region}
+											</div>
+											<div className="text-sm text-gray-600">
+												{new Date(
+													message.createdAt!
+												).toLocaleString("ko-KR", {
+													dateStyle: "short",
+													timeStyle: "short",
+												})}
+											</div>
+										</div>
+									</div>
+
+									<p className="text-gray-800 mb-4 line-clamp-3">
+										{message.content}
+									</p>
+
+									<div className="flex items-center justify-between">
 										<Button
 											variant="ghost"
 											size="sm"
 											onClick={(e) => {
 												e.stopPropagation();
-												if (
-													confirm(
-														"이 메시지를 삭제하시겠습니까?"
-													)
-												) {
-													onDeleteMessage?.(
+												onToggleLike(message.id);
+											}}
+											className="hover:text-red-600 p-0"
+											aria-label={
+												likedIds.has(message.id)
+													? "좋아요 취소"
+													: "좋아요"
+											}
+										>
+											<Heart
+												className="mr-1 h-4 w-4 text-red-500"
+												style={{
+													fill: likedIds.has(
 														message.id
-													);
-												}
-											}}
-											className="hover:text-gray-600 p-0"
-											aria-label="삭제"
-										>
-											<Trash2 className="h-4 w-4" />
-										</Button>
-									</div>
-								)}
-								<div className="flex items-center mb-4">
-									<div className="w-10 h-10 bg-gradient-to-br from-red-600 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm mr-3">
-										🌺
-									</div>
-									<div>
-										<div className="font-semibold text-gray-900">
-											{message.region}
-										</div>
-										<div className="text-sm text-gray-600">
-											{new Date(
-												message.createdAt!
-											).toLocaleDateString()}
-										</div>
-									</div>
-								</div>
-
-								<p className="text-gray-800 mb-4 line-clamp-3">
-									{message.content}
-								</p>
-
-								<div className="flex items-center justify-between">
-									<Button
-										variant="ghost"
-										size="sm"
-										onClick={(e) => {
-											e.stopPropagation();
-											onToggleLike(message.id);
-										}}
-										className="hover:text-red-600 p-0"
-										aria-label={
-											likedIds.has(message.id)
-												? "좋아요 취소"
-												: "좋아요"
-										}
-									>
-										<Heart
-											className="mr-1 h-4 w-4 text-red-500"
-											style={{
-												fill:
-													(message.likes ?? 0) > 0
+													)
 														? "currentColor"
 														: "none",
-											}}
-										/>
-										<span className="text-sm">
-											{message.likes || 0}
-										</span>
-									</Button>
-									<Badge
-										variant="secondary"
-										className="text-xs"
-									>
-										{message.subregion}
-									</Badge>
-								</div>
-							</CardContent>
-						</Card>
-					))}
-				</div>
-			)}
-
-			{filteredMessages().length === 0 && !isLoading && (
-				<div className="text-center py-12">
-					<p className="text-gray-500">메시지가 없습니다.</p>
+												}}
+											/>
+											<span className="text-sm">
+												{message.likes || 0}
+											</span>
+										</Button>
+										<Badge
+											variant="secondary"
+											className="text-xs"
+										>
+											{message.subregion}
+										</Badge>
+									</div>
+								</CardContent>
+							</Card>
+						))}
+					</div>
+					{visibleMessages.length === 0 && !isLoading && (
+						<div className="text-center py-12">
+							<p className="text-gray-500">메시지가 없습니다.</p>
+						</div>
+					)}
+					{/* Load More button for mobile/desktop */}
+					{filteredMessages().length > visibleMessages.length && (
+						<div className="flex justify-center mt-6">
+							<Button
+								onClick={() => setPage((p) => p + 1)}
+								variant="outline"
+							>
+								더 불러오기
+							</Button>
+						</div>
+					)}
 				</div>
 			)}
 		</div>

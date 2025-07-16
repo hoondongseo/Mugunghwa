@@ -61,7 +61,7 @@ export function InteractiveMap({
 					zoom={7}
 					scrollWheelZoom
 					attributionControl={false}
-					minZoom={7}
+					minZoom={6}
 					className="h-full w-full z-0 rounded-lg"
 				>
 					{targetMessage && (

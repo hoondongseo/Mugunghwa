@@ -37,6 +37,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 		}
 	});
 
+	// Get list of regions
+	app.get("/api/regions", async (_req, res) => {
+		try {
+			const regions = await storage.getRegions();
+			res.json(regions);
+		} catch (error) {
+			console.error("Error in GET /api/regions:", error);
+			res.status(500).json({ error: "Failed to fetch regions" });
+		}
+	});
+
 	// Search messages
 	app.get("/api/messages/search", async (req, res) => {
 		try {
@@ -75,6 +86,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 							: "Failed to create message",
 				});
 			}
+		}
+	});
+	// Approve a message
+	app.post("/api/messages/:id/approve", async (req, res) => {
+		try {
+			const id = parseInt(req.params.id);
+			if (isNaN(id)) {
+				return res.status(400).json({ error: "Invalid message ID" });
+			}
+			const message = await storage.approveMessage(id);
+			if (!message) {
+				return res.status(404).json({ error: "Message not found" });
+			}
+			res.json(message);
+		} catch (error) {
+			console.error(
+				`Error in POST /api/messages/:id/approve - id=${req.params.id}:`,
+				error
+			);
+			res.status(500).json({
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to approve message",
+			});
 		}
 	});
 

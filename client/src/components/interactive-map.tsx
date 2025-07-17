@@ -13,7 +13,6 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import type { Message as MessageType } from "@shared/schema";
 import { useEffect, useRef } from "react";
-import { koreanRegions } from "@/lib/korean-regions";
 
 interface InteractiveMapProps {
 	onRegionSelect?: (region: string) => void;
@@ -79,30 +78,9 @@ export function InteractiveMap({
 						attribution="&copy; OpenStreetMap contributors"
 					/>
 					{allMessages.map((msg) => {
-						// Use raw coordinates, fallback to region centroid jitter
-						const rawLat = parseFloat(msg.latitude);
-						const rawLng = parseFloat(msg.longitude);
-						let lat: number, lng: number;
-						if (!isNaN(rawLat) && !isNaN(rawLng)) {
-							lat = rawLat;
-							lng = rawLng;
-						} else {
-							const regionMeta = koreanRegions.find(
-								(r) => r.name === msg.region
-							);
-							if (!regionMeta) return null;
-							const baseLat = regionMeta.lat;
-							const baseLng = regionMeta.lng;
-							const jitterMax = 0.001;
-							const rand1 = Math.sin(msg.id) * 10000;
-							const latFrac = rand1 - Math.floor(rand1);
-							const latOff = latFrac * 2 * jitterMax - jitterMax;
-							const rand2 = Math.sin(msg.id + 1) * 10000;
-							const lngFrac = rand2 - Math.floor(rand2);
-							const lngOff = lngFrac * 2 * jitterMax - jitterMax;
-							lat = baseLat + latOff;
-							lng = baseLng + lngOff;
-						}
+						// Always use raw latitude and longitude from message
+						const lat = parseFloat(msg.latitude);
+						const lng = parseFloat(msg.longitude);
 						return (
 							<Marker
 								key={msg.id}

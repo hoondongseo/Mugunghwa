@@ -10,10 +10,7 @@ const inappropriateKeywords = [
 	"죽어",
 	"꺼져",
 	// Insults specific to President Yoon Suk-yeol
-	"윤석열충",
 	"쥴리",
-	"윤깨비",
-	"윤가",
 	"윤재앙",
 	"윤돼지",
 	"굥",
@@ -65,6 +62,8 @@ const positiveKeywords = [
 	"계몽",
 	"대한민국",
 	"한국",
+	"윤카",
+	"대통령",
 ];
 
 export function filterContent(content: string): boolean {

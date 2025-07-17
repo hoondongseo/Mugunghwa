@@ -8,7 +8,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 	// Get all approved messages
 	app.get("/api/messages", async (req, res) => {
 		try {
-			const limit = parseInt(req.query.limit as string) || 50;
+			const limit = parseInt(req.query.limit as string) || 999;
 			const offset = parseInt(req.query.offset as string) || 0;
 			const messages = await storage.getMessages(limit, offset); // fetch all messages, not only approved
 			// Remove precise coordinates before sending to client
@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 	app.get("/api/messages/region/:region", async (req, res) => {
 		try {
 			const region = decodeURIComponent(req.params.region);
-			const limit = parseInt(req.query.limit as string) || 50;
+			const limit = parseInt(req.query.limit as string) || 999; // 변경: 기본 limit를 999로 확대
 			const messages = await storage.getMessagesByRegion(region, limit);
 			// Remove precise coordinates
 			const safeMessages = messages.map(

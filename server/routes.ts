@@ -11,7 +11,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			const limit = parseInt(req.query.limit as string) || 999;
 			const offset = parseInt(req.query.offset as string) || 0;
 			const messages = await storage.getMessages(limit, offset); // fetch all messages, not only approved
-			res.json(messages);
+			// Remove precise coordinates before sending to client
+			const safeMessages = messages.map(
+				({ latitude, longitude, ...rest }) => rest
+			);
+			res.json(safeMessages);
 		} catch (error) {
 			console.error("Error in GET /api/messages:", error);
 			res.status(500).json({
@@ -27,9 +31,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 	app.get("/api/messages/region/:region", async (req, res) => {
 		try {
 			const region = decodeURIComponent(req.params.region);
-			const limit = parseInt(req.query.limit as string) || 999;
+			const limit = parseInt(req.query.limit as string) || 999; // 변경: 기본 limit를 999로 확대
 			const messages = await storage.getMessagesByRegion(region, limit);
-			res.json(messages);
+			// Remove precise coordinates
+			const safeMessages = messages.map(
+				({ latitude, longitude, ...rest }) => rest
+			);
+			res.json(safeMessages);
 		} catch (error) {
 			res.status(500).json({
 				error: "Failed to fetch messages by region",
@@ -59,7 +67,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			}
 			const limit = parseInt(req.query.limit as string) || 50;
 			const messages = await storage.searchMessages(query, limit);
-			res.json(messages);
+			// Remove precise coordinates
+			const safeMessages = messages.map(
+				({ latitude, longitude, ...rest }) => rest
+			);
+			res.json(safeMessages);
 		} catch (error) {
 			res.status(500).json({ error: "Failed to search messages" });
 		}

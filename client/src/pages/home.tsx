@@ -8,6 +8,7 @@ import { Statistics } from "@/components/statistics";
 import { LocationBanner } from "@/components/location-banner";
 import { useLocation } from "@/hooks/use-location";
 import { Button } from "@/components/ui/button";
+// import { useToast } from "@/hooks/use-toast"; // Toast 대신 모달 사용
 import { filterContent } from "@/lib/content-filter";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, MapPin, Heart } from "lucide-react";
@@ -105,6 +106,9 @@ export default function Home() {
 		}
 	};
 	const { userLocation, requestLocation, hasPermission } = useLocation();
+	// 성공 확인 모달 상태 및 대기 중인 메시지
+	const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+	const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
 
 	const scrollToSection = (sectionId: string) => {
 		const element = document.getElementById(sectionId);
@@ -128,11 +132,13 @@ export default function Home() {
 
 	// Message form success: save ID and fly to map
 	const handleFormSuccess = (newMessage: Message) => {
+		// 메시지 저장 및 모달 오픈
 		localStorage.setItem("myMessageId", String(newMessage.id));
 		setMyMessageId(newMessage.id);
 		setIsMessageFormOpen(false);
-		setTargetMessage(newMessage);
-		scrollToSection("map");
+		// 비행은 모달 확인 후 실행
+		setPendingMessage(newMessage);
+		setShowSuccessDialog(true);
 	};
 
 	// Update own message
@@ -365,6 +371,51 @@ export default function Home() {
 					</DialogTrigger>
 				</Dialog>
 			)}
+			{/* Success Confirmation Dialog */}
+			<Dialog
+				open={showSuccessDialog}
+				onOpenChange={setShowSuccessDialog}
+			>
+				<DialogContent>
+					<div className="p-6 text-center">
+						<h3 className="text-xl font-semibold mb-4">
+							감사합니다!
+						</h3>
+						<p className="mb-4">
+							여러분의 메시지가 윤석열 대통령님께 큰 힘이 될
+							것입니다.
+						</p>
+						<p className="mb-6">
+							📢 애국 시민 여러분, 악법 반대에도 꼭! 참여해주세요.
+						</p>
+						<div className="flex justify-center space-x-4">
+							<Button
+								className="bg-red-600 text-white"
+								onClick={() =>
+									window.open(
+										"https://vforkorea.com/assem/",
+										"_blank"
+									)
+								}
+							>
+								악법 반대 하러가기
+							</Button>
+							<Button
+								variant="outline"
+								onClick={() => {
+									setShowSuccessDialog(false);
+									if (pendingMessage) {
+										setTargetMessage(pendingMessage);
+									}
+									scrollToSection("map");
+								}}
+							>
+								지도 보러가기
+							</Button>
+						</div>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

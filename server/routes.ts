@@ -10,12 +10,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 		try {
 			const limit = parseInt(req.query.limit as string) || 999;
 			const offset = parseInt(req.query.offset as string) || 0;
-			const messages = await storage.getMessages(limit, offset); // fetch all messages, not only approved
-			// Remove precise coordinates before sending to client
-			const safeMessages = messages.map(
-				({ latitude, longitude, ...rest }) => rest
-			);
-			res.json(safeMessages);
+			// fetch all messages, not only approved
+			let messages = await storage.getMessages(limit, offset);
+			// ensure latitude/longitude present: fallback to region coordinates
+			const regions = await storage.getRegions();
+			const regionMap = new Map(regions.map((r) => [r.name, r]));
+			messages = messages.map((msg) => {
+				const lat = parseFloat((msg as any).latitude);
+				const lng = parseFloat((msg as any).longitude);
+				if (isNaN(lat) || isNaN(lng)) {
+					const region = regionMap.get(msg.region);
+					if (region) {
+						(msg as any).latitude = region.latitude;
+						(msg as any).longitude = region.longitude;
+					}
+				}
+				return msg;
+			});
+			res.json(messages);
 		} catch (error) {
 			console.error("Error in GET /api/messages:", error);
 			res.status(500).json({

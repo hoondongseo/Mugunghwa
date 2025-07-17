@@ -1,10 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Heart, Clock, TrendingUp, Edit2, Trash2 } from "lucide-react";
+import {
+	Select,
+	SelectTrigger,
+	SelectValue,
+	SelectContent,
+	SelectItem,
+} from "@/components/ui/select";
+import { Heart, Clock, TrendingUp, Edit2, Trash2 } from "lucide-react";
 import type { Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -19,6 +25,10 @@ interface MessageFeedProps {
 	onUpdateMessage?: (id: number, content: string) => void;
 	// Handler to delete a message
 	onDeleteMessage?: (id: number) => void;
+	// Handler to change selected region
+	onRegionSelect: (region: string | null) => void;
+	// Available regions for dropdown
+	availableRegions: string[];
 }
 
 export function MessageFeed({
@@ -29,8 +39,10 @@ export function MessageFeed({
 	myMessageId,
 	onUpdateMessage,
 	onDeleteMessage,
+	onRegionSelect,
+	availableRegions,
 }: MessageFeedProps) {
-	const [searchQuery, setSearchQuery] = useState("");
+	// Search feature removed
 	// Pagination state: number of pages to show via Load More
 	const PAGE_SIZE = 9;
 	const [page, setPage] = useState(1);
@@ -48,14 +60,9 @@ export function MessageFeed({
 		refetchOnReconnect: false,
 	});
 
-	const { data: searchResults = [] } = useQuery<Message[]>({
-		queryKey: ["/api/messages/search", { q: searchQuery }],
-		enabled: searchQuery.length > 0,
-	});
-
 	// Filter and sort messages
 	const filteredMessages = () => {
-		let baseMessages = searchQuery ? searchResults : messages;
+		let baseMessages = messages;
 		// Apply region filter from parent prop
 		if (selectedRegion) {
 			baseMessages = baseMessages.filter(
@@ -99,7 +106,7 @@ export function MessageFeed({
 	// Reset page when filter or search changes
 	useEffect(() => {
 		setPage(1);
-	}, [activeFilter, searchQuery]);
+	}, [activeFilter]);
 
 	const visibleMessages = filteredMessages().slice(0, page * PAGE_SIZE);
 
@@ -120,6 +127,27 @@ export function MessageFeed({
 				<p className="text-lg text-gray-600">
 					대한민국 곳곳에서 온 따뜻한 응원의 목소리
 				</p>
+				{/* Region Dropdown */}
+				<div className="mt-4 mb-8">
+					<Select
+						value={selectedRegion ?? "all"}
+						onValueChange={(value) =>
+							onRegionSelect(value === "all" ? null : value)
+						}
+					>
+						<SelectTrigger className="w-full">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">전체 지역</SelectItem>
+							{availableRegions.map((region) => (
+								<SelectItem key={region} value={region}>
+									{region}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
 
 			{/* Filter Controls */}
@@ -139,20 +167,6 @@ export function MessageFeed({
 						{label}
 					</Button>
 				))}
-			</div>
-
-			{/* Search Bar */}
-			<div className="max-w-md mx-auto mb-8">
-				<div className="relative">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-					<Input
-						type="text"
-						placeholder="메시지 검색..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-10"
-					/>
-				</div>
 			</div>
 
 			{/* Messages Grid */}

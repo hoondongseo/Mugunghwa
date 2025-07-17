@@ -11,13 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, MapPin, Heart } from "lucide-react";
 import type { Message } from "@shared/schema";
-import {
-	Select,
-	SelectTrigger,
-	SelectValue,
-	SelectContent,
-	SelectItem,
-} from "@/components/ui/select";
 
 export default function Home() {
 	// Single message per device
@@ -197,7 +190,7 @@ export default function Home() {
 	}, [allMessages]);
 
 	return (
-		<div className="min-h-screen bg-gray-50">
+		<div className="min-h-screen bg-white">
 			{/* Header */}
 			<header className="bg-white shadow-sm border-b-2 border-red-600">
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -271,32 +264,8 @@ export default function Home() {
 			</section>
 
 			{/* Statistics Section */}
-			<section id="statistics" className="py-12 bg-gray-50">
+			<section id="statistics" className="py-12 bg-white">
 				<Statistics />
-			</section>
-
-			{/* Region Dropdown */}
-			<section className="py-4 bg-white mb-8">
-				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-					<Select
-						value={selectedRegion ?? "all"}
-						onValueChange={(value) =>
-							setSelectedRegion(value === "all" ? null : value)
-						}
-					>
-						<SelectTrigger className="w-full max-w-xs mb-4">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">전체 지역</SelectItem>
-							{availableRegions.map((region) => (
-								<SelectItem key={region} value={region}>
-									{region}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				</div>
 			</section>
 
 			{/* Messages Feed Section */}
@@ -309,6 +278,8 @@ export default function Home() {
 					myMessageId={myMessageId}
 					onUpdateMessage={handleUpdateMessage}
 					onDeleteMessage={handleDeleteMessage}
+					onRegionSelect={setSelectedRegion}
+					availableRegions={availableRegions}
 				/>
 			</section>
 

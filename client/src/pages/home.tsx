@@ -8,6 +8,7 @@ import { Statistics } from "@/components/statistics";
 import { LocationBanner } from "@/components/location-banner";
 import { useLocation } from "@/hooks/use-location";
 import { Button } from "@/components/ui/button";
+import { filterContent } from "@/lib/content-filter";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, MapPin, Heart } from "lucide-react";
 import type { Message } from "@shared/schema";
@@ -136,12 +137,15 @@ export default function Home() {
 
 	// Update own message
 	const handleUpdateMessage = async (id: number, content: string) => {
+		// Content filter 적용
+		if (!filterContent(content)) {
+			alert("부적절한 단어가 포함되어 있어 메시지를 수정할 수 없습니다.");
+			return;
+		}
 		try {
-			const res = await apiRequest(
-				"PUT",
-				`http://localhost:5000/api/messages/${id}`,
-				{ content }
-			);
+			const res = await apiRequest("PUT", `/api/messages/${id}`, {
+				content,
+			});
 			const updated: Message = await res.json();
 			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
 				old ? old.map((m) => (m.id === id ? updated : m)) : []
@@ -156,10 +160,7 @@ export default function Home() {
 	// Delete own message
 	const handleDeleteMessage = async (id: number) => {
 		try {
-			await apiRequest(
-				"DELETE",
-				`http://localhost:5000/api/messages/${id}`
-			);
+			await apiRequest("DELETE", `/api/messages/${id}`);
 			queryClient.setQueryData<Message[]>(["/api/messages"], (old) =>
 				old ? old.filter((m) => m.id !== id) : []
 			);

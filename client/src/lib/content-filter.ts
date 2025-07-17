@@ -18,6 +18,7 @@ const inappropriateKeywords = [
 	"윤돼지",
 	"굥",
 	"술집",
+	"수괴",
 	// Hate speech
 	"혐오",
 	"차별",

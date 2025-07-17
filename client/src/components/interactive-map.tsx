@@ -79,16 +79,13 @@ export function InteractiveMap({
 						attribution="&copy; OpenStreetMap contributors"
 					/>
 					{allMessages.map((msg) => {
-						// Use region centroid for privacy
+						// Use region centroid for privacy; skip if no matching region
 						const regionMeta = koreanRegions.find(
 							(r) => r.name === msg.region
 						);
-						const baseLat = regionMeta
-							? regionMeta.lat
-							: parseFloat(msg.latitude);
-						const baseLng = regionMeta
-							? regionMeta.lng
-							: parseFloat(msg.longitude);
+						if (!regionMeta) return null;
+						const baseLat = regionMeta.lat;
+						const baseLng = regionMeta.lng;
 						const jitter = 0.0001; // ~10m deterministic jitter
 						const offsets: [number, number][] = [
 							[jitter, jitter],

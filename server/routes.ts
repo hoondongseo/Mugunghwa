@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 	app.get("/api/messages/region/:region", async (req, res) => {
 		try {
 			const region = decodeURIComponent(req.params.region);
-			const limit = parseInt(req.query.limit as string) || 999; // 변경: 기본 limit를 999로 확대
+			const limit = parseInt(req.query.limit as string) || 999;
 			const messages = await storage.getMessagesByRegion(region, limit);
 			// Remove precise coordinates
 			const safeMessages = messages.map(
@@ -65,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 					.status(400)
 					.json({ error: "Search query is required" });
 			}
-			const limit = parseInt(req.query.limit as string) || 50;
+			const limit = parseInt(req.query.limit as string) || 999;
 			const messages = await storage.searchMessages(query, limit);
 			// Remove precise coordinates
 			const safeMessages = messages.map(

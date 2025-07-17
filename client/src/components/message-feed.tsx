@@ -11,6 +11,7 @@ import {
 	SelectItem,
 } from "@/components/ui/select";
 import { Heart, Clock, TrendingUp, Edit2, Trash2 } from "lucide-react";
+import { filterContent } from "@/lib/content-filter";
 import type { Message } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -201,18 +202,36 @@ export function MessageFeed({
 												size="sm"
 												onClick={(e) => {
 													e.stopPropagation();
-													const newContent = prompt(
+													let newContent = prompt(
 														"메시지를 수정하세요:",
 														message.content
 													);
-													if (
-														newContent !== null &&
-														newContent.trim() !== ""
+													while (
+														newContent !== null
 													) {
+														const trimmed =
+															newContent.trim();
+														if (trimmed === "")
+															break;
+														if (
+															!filterContent(
+																trimmed
+															)
+														) {
+															alert(
+																"부적절한 단어가 포함되어 있어 메시지를 수정할 수 없습니다."
+															);
+															newContent = prompt(
+																"메시지를 수정하세요:",
+																""
+															);
+															continue;
+														}
 														onUpdateMessage?.(
 															message.id,
-															newContent.trim()
+															trimmed
 														);
+														break;
 													}
 												}}
 												className="hover:text-blue-600 p-0"

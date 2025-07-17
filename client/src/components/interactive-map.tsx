@@ -59,12 +59,14 @@ export function InteractiveMap({
 				<MapContainer
 					center={[36.5, 127.8]}
 					zoom={7}
-					scrollWheelZoom
+					scrollWheelZoom={true}
 					attributionControl={false}
 					minZoom={6}
-					maxZoom={14} // 최대 확대 레벨 제한 (개인정보 보호)
+					maxZoom={10} // 최대 확대 레벨 제한 (개인정보 보호)
 					className="h-full w-full z-0 rounded-lg"
 				>
+					{/* 최대 확대 레벨일 때만 터치 줌 비활성화 */}
+					<DynamicTouchZoomControl />
 					{targetMessage && (
 						<MapUpdater
 							message={targetMessage}
@@ -196,3 +198,27 @@ function MapUpdater({
 	}, [message, map]);
 	return null;
 }
+
+// 최대 확대 레벨 도달 시 터치 줌 비활성화/기능 활성화
+function DynamicTouchZoomControl() {
+	const map = useMap();
+	useEffect(() => {
+		const handleZoom = () => {
+			const current = map.getZoom();
+			const max = map.getMaxZoom();
+			if (current >= max) {
+				map.touchZoom.disable();
+			} else {
+				map.touchZoom.enable();
+			}
+		};
+		map.on("zoomend", handleZoom);
+		handleZoom();
+		return () => {
+			map.off("zoomend", handleZoom);
+		};
+	}, [map]);
+	return null;
+}
+
+export { DynamicTouchZoomControl };

@@ -33,7 +33,11 @@ export function useLocation() {
 
 		navigator.geolocation.getCurrentPosition(
 			(position) => {
-				const { latitude, longitude } = position.coords;
+				// Coarsen location precision for privacy (round to 2 decimal places)
+				const rawLat = position.coords.latitude;
+				const rawLng = position.coords.longitude;
+				const latitude = parseFloat(rawLat.toFixed(2));
+				const longitude = parseFloat(rawLng.toFixed(2));
 				setState({
 					userLocation: { latitude, longitude },
 					hasPermission: true,
@@ -78,7 +82,7 @@ export function useLocation() {
 				});
 			},
 			{
-				enableHighAccuracy: true,
+				enableHighAccuracy: false, // disable precise GPS for privacy
 				timeout: 10000,
 				maximumAge: 600000, // 10 minutes
 			}

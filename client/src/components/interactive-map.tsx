@@ -79,24 +79,30 @@ export function InteractiveMap({
 						attribution="&copy; OpenStreetMap contributors"
 					/>
 					{allMessages.map((msg) => {
-						// Use region centroid for valid coordinates
-						const regionMeta = koreanRegions.find(
-							(r) => r.name === msg.region
-						);
-						if (!regionMeta) return null;
-						const baseLat = regionMeta.lat;
-						const baseLng = regionMeta.lng;
-						const jitter = 0.0001; // ~10m deterministic jitter
-						const offsets: [number, number][] = [
-							[jitter, jitter],
-							[jitter, -jitter],
-							[-jitter, jitter],
-							[-jitter, -jitter],
-						];
-						const idx = msg.id % offsets.length;
-						const [latOff, lngOff] = offsets[idx];
-						const lat = baseLat + latOff;
-						const lng = baseLng + lngOff;
+						// Use raw coordinates, fallback to region centroid jitter
+						const rawLat = parseFloat(msg.latitude);
+						const rawLng = parseFloat(msg.longitude);
+						let lat: number, lng: number;
+						if (!isNaN(rawLat) && !isNaN(rawLng)) {
+							lat = rawLat;
+							lng = rawLng;
+						} else {
+							const regionMeta = koreanRegions.find(
+								(r) => r.name === msg.region
+							);
+							if (!regionMeta) return null;
+							const baseLat = regionMeta.lat;
+							const baseLng = regionMeta.lng;
+							const jitterMax = 0.001;
+							const rand1 = Math.sin(msg.id) * 10000;
+							const latFrac = rand1 - Math.floor(rand1);
+							const latOff = latFrac * 2 * jitterMax - jitterMax;
+							const rand2 = Math.sin(msg.id + 1) * 10000;
+							const lngFrac = rand2 - Math.floor(rand2);
+							const lngOff = lngFrac * 2 * jitterMax - jitterMax;
+							lat = baseLat + latOff;
+							lng = baseLng + lngOff;
+						}
 						return (
 							<Marker
 								key={msg.id}
@@ -179,11 +185,10 @@ function MapUpdater({
 	const map = useMap();
 	useEffect(() => {
 		// Use region centroid for valid coordinates
-		const regionMeta = koreanRegions.find((r) => r.name === message.region);
-		if (!regionMeta) return;
-		const baseLat = regionMeta.lat;
-		const baseLng = regionMeta.lng;
-		const rawTarget: [number, number] = [baseLat, baseLng];
+		const rawLat = parseFloat(message.latitude);
+		const rawLng = parseFloat(message.longitude);
+		if (isNaN(rawLat) || isNaN(rawLng)) return;
+		const rawTarget: [number, number] = [rawLat, rawLng];
 		// Determine center target: at max zoom use marker jittered position
 		const currentZoom = map.getZoom();
 		const maxZoom = map.getMaxZoom();

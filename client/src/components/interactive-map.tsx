@@ -60,13 +60,12 @@ export function InteractiveMap({
 					center={[36.5, 127.8]}
 					zoom={7}
 					scrollWheelZoom={true}
+					touchZoom={true} // 터치 줌 활성화, maxZoom 제한 적용
 					attributionControl={false}
 					minZoom={6}
-					maxZoom={9.5} // 최대 확대 레벨 제한 (개인정보 보호)
+					maxZoom={7} // 최대 확대 레벨 제한 (개인정보 보호)
 					className="h-full w-full z-0 rounded-lg"
 				>
-					{/* 최대 확대 레벨일 때만 터치 줌 비활성화 */}
-					<DynamicTouchZoomControl />
 					{targetMessage && (
 						<MapUpdater
 							message={targetMessage}

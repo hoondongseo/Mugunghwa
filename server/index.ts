@@ -226,7 +226,10 @@ app.use((req, res, next) => {
 	}
 
 	// Start server
-	const port = 5000;
+	const port =
+		typeof process.env.PORT === "string"
+			? parseInt(process.env.PORT)
+			: 5000;
 	server.listen({ port, host: "0.0.0.0" }, () => {
 		log(`serving on port ${port}`);
 	});

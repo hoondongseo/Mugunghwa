@@ -62,6 +62,7 @@ export function InteractiveMap({
 					scrollWheelZoom
 					attributionControl={false}
 					minZoom={6}
+					maxZoom={14} // 최대 확대 레벨 제한 (개인정보 보호)
 					className="h-full w-full z-0 rounded-lg"
 				>
 					{targetMessage && (

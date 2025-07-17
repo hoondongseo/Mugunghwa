@@ -1,0 +1,4 @@
+# Ads.txt for Google AdSense
+# For details: https://support.google.com/adsense/answer/7532444
+
+google.com, pub-6106898947677268, DIRECT, f08c47fec0942fa0

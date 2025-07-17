@@ -78,130 +78,28 @@ export function InteractiveMap({
 						url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 						attribution="&copy; OpenStreetMap contributors"
 					/>
-					{allMessages.map((msg) => {
-						// Use region centroid for privacy; skip if no matching region
-						const regionMeta = koreanRegions.find(
-							(r) => r.name === msg.region
-						);
-						if (!regionMeta) return null;
-						const baseLat = regionMeta.lat;
-						const baseLng = regionMeta.lng;
-						const jitter = 0.0001; // ~10m deterministic jitter
-						const offsets: [number, number][] = [
-							[jitter, jitter],
-							[jitter, -jitter],
-							[-jitter, jitter],
-							[-jitter, -jitter],
-						];
-						const idx = msg.id % offsets.length;
-						const [latOff, lngOff] = offsets[idx];
-						const lat = baseLat + latOff;
-						const lng = baseLng + lngOff;
+				   {allMessages.map((msg) => {
+					   // Use region centroid for privacy
+					   const regionMeta = koreanRegions.find(r => r.name === msg.region);
+					   if (!regionMeta) return null;
+					   const baseLat = regionMeta.lat;
+					   const baseLng = regionMeta.lng;
+					   // Small deterministic jitter (~10m)
+					   const jitter = 0.0001;
+					   const offsets: [number, number][] = [
+						   [jitter, jitter],
+						   [jitter, -jitter],
+						   [-jitter, jitter],
+						   [-jitter, -jitter],
+					   ];
+					   const idx = msg.id % offsets.length;
+					   const [latOff, lngOff] = offsets[idx];
+					   const lat = baseLat + latOff;
+					   const lng = baseLng + lngOff;
 						return (
 							<Marker
 								key={msg.id}
 								position={[lat, lng]}
 								icon={mugunghwaIcon}
 								ref={(ref) => {
-									if (ref) markerRefs.current[msg.id] = ref;
-								}}
-								eventHandlers={{
-									click: (e) => {
-										e.originalEvent.stopPropagation();
-										e.target.openPopup();
-										onRegionSelect?.(msg.region);
-									},
-								}}
-							>
-								<Popup>
-									<div className="space-y-2">
-										<p className="font-semibold">
-											{msg.region}
-										</p>
-										<p>{msg.content}</p>
-										<div className="flex items-center justify-between text-xs text-gray-500">
-											<span>
-												{new Date(
-													msg.createdAt!
-												).toLocaleDateString()}
-											</span>
-											<div className="flex items-center">
-												<button
-													onClick={(e) => {
-														e.stopPropagation();
-														onToggleLike(msg.id);
-													}}
-													className="mr-1"
-													aria-label={
-														likedIds.has(msg.id)
-															? "좋아요 취소"
-															: "좋아요"
-													}
-													title={
-														likedIds.has(msg.id)
-															? "좋아요 취소"
-															: "좋아요"
-													}
-												>
-													<Heart
-														className="mr-1 h-3 w-3 text-red-400"
-														style={{
-															stroke: "currentColor",
-															fill: likedIds.has(
-																msg.id
-															)
-																? "currentColor"
-																: "none",
-														}}
-													/>
-												</button>
-												<span>{msg.likes || 0}</span>
-											</div>
-										</div>
-									</div>
-								</Popup>
-							</Marker>
-						);
-					})}
-				</MapContainer>
-			</div>
-		</div>
-	);
-}
-
-function MapUpdater({
-	message,
-	markerRefs,
-}: {
-	message: MessageType;
-	markerRefs: React.MutableRefObject<Record<number, L.Marker>>;
-}) {
-	const map = useMap();
-	useEffect(() => {
-		if (!message.latitude || !message.longitude) return;
-		// Parse raw coordinates
-		// Use region centroid for privacy fallback
-		const regionMeta = koreanRegions.find((r) => r.name === message.region);
-		const rawTarget: [number, number] = regionMeta
-			? [regionMeta.lat, regionMeta.lng]
-			: [parseFloat(message.latitude), parseFloat(message.longitude)];
-		// Determine center target: at max zoom use jittered marker position
-		const currentZoom = map.getZoom();
-		const maxZoom = map.getMaxZoom();
-		const marker = markerRefs.current[message.id];
-		const centerTarget: [number, number] =
-			currentZoom === maxZoom && marker
-				? [marker.getLatLng().lat, marker.getLatLng().lng]
-				: rawTarget;
-		map.setView(centerTarget);
-		// Determine duration: slower if fully zoomed out, otherwise faster
-		const minZoom = map.getMinZoom();
-		const duration = currentZoom === minZoom ? 1.0 : 0.5;
-		map.flyTo(centerTarget, maxZoom, { animate: true, duration });
-		map.once("moveend", () => {
-			const marker = markerRefs.current[message.id];
-			if (marker) marker.openPopup();
-		});
-	}, [message, map]);
-	return null;
-}
+									if

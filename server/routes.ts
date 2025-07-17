@@ -45,7 +45,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			const region = decodeURIComponent(req.params.region);
 			const limit = parseInt(req.query.limit as string) || 999;
 			const messages = await storage.getMessagesByRegion(region, limit);
-			res.json(messages);
+			// Remove precise coordinates
+			const safeMessages = messages.map(
+				({ latitude, longitude, ...rest }) => rest
+			);
+			res.json(safeMessages);
 		} catch (error) {
 			res.status(500).json({
 				error: "Failed to fetch messages by region",
@@ -75,7 +79,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			}
 			const limit = parseInt(req.query.limit as string) || 999;
 			const messages = await storage.searchMessages(query, limit);
-			res.json(messages);
+			// Remove precise coordinates
+			const safeMessages = messages.map(
+				({ latitude, longitude, ...rest }) => rest
+			);
+			res.json(safeMessages);
 		} catch (error) {
 			res.status(500).json({ error: "Failed to search messages" });
 		}

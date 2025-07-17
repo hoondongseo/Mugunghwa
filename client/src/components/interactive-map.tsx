@@ -62,7 +62,7 @@ export function InteractiveMap({
 					scrollWheelZoom={true}
 					attributionControl={false}
 					minZoom={6}
-					maxZoom={10} // 최대 확대 레벨 제한 (개인정보 보호)
+					maxZoom={9.5} // 최대 확대 레벨 제한 (개인정보 보호)
 					className="h-full w-full z-0 rounded-lg"
 				>
 					{/* 최대 확대 레벨일 때만 터치 줌 비활성화 */}

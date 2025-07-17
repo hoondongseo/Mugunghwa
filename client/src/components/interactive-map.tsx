@@ -13,6 +13,7 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import type { Message as MessageType } from "@shared/schema";
 import { useEffect, useRef } from "react";
+import { koreanRegions } from "@/lib/korean-regions";
 
 interface InteractiveMapProps {
 	onRegionSelect?: (region: string) => void;
@@ -78,8 +79,16 @@ export function InteractiveMap({
 						attribution="&copy; OpenStreetMap contributors"
 					/>
 					{allMessages.map((msg) => {
-						const baseLat = parseFloat(msg.latitude);
-						const baseLng = parseFloat(msg.longitude);
+						// Use region centroid for privacy
+						const regionMeta = koreanRegions.find(
+							(r) => r.name === msg.region
+						);
+						const baseLat = regionMeta
+							? regionMeta.lat
+							: parseFloat(msg.latitude);
+						const baseLng = regionMeta
+							? regionMeta.lng
+							: parseFloat(msg.longitude);
 						const jitter = 0.0001; // ~10m deterministic jitter
 						const offsets: [number, number][] = [
 							[jitter, jitter],
@@ -174,9 +183,11 @@ function MapUpdater({
 	useEffect(() => {
 		if (!message.latitude || !message.longitude) return;
 		// Parse raw coordinates
-		const rawLat = parseFloat(message.latitude);
-		const rawLng = parseFloat(message.longitude);
-		const rawTarget: [number, number] = [rawLat, rawLng];
+		// Use region centroid for privacy fallback
+		const regionMeta = koreanRegions.find((r) => r.name === message.region);
+		const rawTarget: [number, number] = regionMeta
+			? [regionMeta.lat, regionMeta.lng]
+			: [parseFloat(message.latitude), parseFloat(message.longitude)];
 		// Determine center target: at max zoom use jittered marker position
 		const currentZoom = map.getZoom();
 		const maxZoom = map.getMaxZoom();

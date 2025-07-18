@@ -10,7 +10,12 @@ import { useLocation } from "@/hooks/use-location";
 import { Button } from "@/components/ui/button";
 // import { useToast } from "@/hooks/use-toast"; // Toast 대신 모달 사용
 import { filterContent } from "@/lib/content-filter";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogTrigger,
+	DialogClose,
+} from "@/components/ui/dialog";
 import { Plus, MapPin, Heart } from "lucide-react";
 import type { Message } from "@shared/schema";
 
@@ -109,6 +114,10 @@ export default function Home() {
 	// 성공 확인 모달 상태 및 대기 중인 메시지
 	const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 	const [pendingMessage, setPendingMessage] = useState<Message | null>(null);
+	// 개인정보 안내 팝업: 로컬스토리지에 따라 표시 여부 결정
+	const [showPrivacyPopup, setShowPrivacyPopup] = useState<boolean>(
+		() => !localStorage.getItem("privacyModalDismissed")
+	);
 
 	const scrollToSection = (sectionId: string) => {
 		const element = document.getElementById(sectionId);
@@ -198,6 +207,58 @@ export default function Home() {
 
 	return (
 		<div className="min-h-screen bg-white">
+			{/* 개인정보 안내 모달 */}
+			<Dialog open={showPrivacyPopup} onOpenChange={setShowPrivacyPopup}>
+				<DialogContent className="sm:max-w-md text-center">
+					<h2 className="text-lg font-semibold">📢 개인정보 안내</h2>
+					<div className="mt-4 space-y-4 text-left">
+						<div className="flex items-start">
+							<span className="inline-block mt-2 h-2 w-2 bg-red-600 rounded-full" />
+							<p className="ml-3 text-sm">
+								<strong>위치 정보:</strong> 소수점 둘째 자리까지
+								수집 (약 1.1km 반경, 개인 식별 불가능)
+							</p>
+						</div>
+						<div className="flex items-start">
+							<span className="inline-block mt-2 h-2 w-2 bg-red-600 rounded-full" />
+							<p className="ml-3 text-sm">
+								이 외의 개인 정보는{" "}
+								<strong>저장되지 않습니다.</strong>
+							</p>
+						</div>
+						<div className="flex items-start">
+							<span className="inline-block mt-2 h-2 w-2 bg-red-600 rounded-full" />
+							<p className="ml-3 text-sm">
+								특정 지역(섬, 오지 등)에서는 1km 반경 내 특정
+								인물이 유일할 수 있어<br></br>{" "}
+								<strong>간접 식별</strong>이 가능할 수 있으므로
+								주의해주세요.
+							</p>
+						</div>
+					</div>
+					<div className="mt-6 flex space-x-2">
+						<DialogClose asChild>
+							<Button variant="default" className="flex-1">
+								확인
+							</Button>
+						</DialogClose>
+						<Button
+							variant="outline"
+							className="flex-1"
+							onClick={() => {
+								localStorage.setItem(
+									"privacyModalDismissed",
+									"true"
+								);
+								setShowPrivacyPopup(false);
+							}}
+						>
+							다시 보지 않기
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
+
 			{/* Header */}
 			<header className="bg-white shadow-sm border-b-2 border-red-600">
 				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -49,7 +49,7 @@ export function useLocation() {
 				if (!localStorage.getItem(noticeKey)) {
 					toast({
 						title: "위치 정보 허용됨",
-						description: "메시지를 작성할 수 있습니다.",
+						description: "메시지를 작성할 수 있습니다. 위치 정보는 소수점 둘째 자리까지만 수집됩니다.",
 					});
 					localStorage.setItem(noticeKey, "true");
 				}

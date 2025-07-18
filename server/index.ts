@@ -186,8 +186,9 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 const app = express();
 // Cookie parser (needed for CSRF)
 app.use(cookieParser());
-// CSRF protection: set CSRF token cookie
+// CSRF protection for API routes only: set CSRF token cookie and header
 app.use(
+	"/api",
 	csurf({
 		cookie: {
 			httpOnly: true,
@@ -196,7 +197,7 @@ app.use(
 		},
 	})
 );
-// Expose CSRF token for client-side consumption
+// Expose CSRF token for client-side consumption under /api
 app.get("/api/csrf-token", (req, res) => {
 	res.json({ csrfToken: (req as any).csrfToken() });
 });

@@ -46,14 +46,14 @@ export interface IStorage {
 
 export const storage: IStorage = {
 	async getUser(id: number) {
-		const [user] = await db.select().from(users).where(users.id.eq(id));
+		const [user] = await db.select().from(users).where(eq(users.id, id));
 		return user;
 	},
 	async getUserByUsername(username: string) {
 		const [user] = await db
 			.select()
 			.from(users)
-			.where(users.username.eq(username));
+			.where(eq(users.username, username));
 		return user;
 	},
 	async createUser(userData: InsertUser) {
@@ -90,7 +90,7 @@ export const storage: IStorage = {
 		const [msg] = await db
 			.update(messages)
 			.set({ isApproved: true })
-			.where(messages.id.eq(id))
+			.where(eq(messages.id, id))
 			.returning();
 		return msg;
 	},
@@ -124,7 +124,7 @@ export const storage: IStorage = {
 		const [r] = await db
 			.select()
 			.from(regions)
-			.where(regions.name.eq(name));
+			.where(eq(regions.name, name));
 		return r;
 	},
 	async createRegion(regionData: InsertRegion) {
@@ -135,7 +135,7 @@ export const storage: IStorage = {
 		const [r] = await db
 			.update(regions)
 			.set({ messageCount: count })
-			.where(regions.name.eq(regionName))
+			.where(eq(regions.name, regionName))
 			.returning();
 		return r;
 	},
@@ -152,15 +152,16 @@ export const storage: IStorage = {
 		return Number(count);
 	},
 	async getTodayMessagesCount() {
-		// Count messages whose creation date is today (in DB date context)
-		// Count messages created today in Korea timezone (KST)
-		// Count messages created since midnight KST using SQL
+		// Count messages whose creation date in KST matches today's KST date
 		const [{ count }] = await db
 			.select({ count: sql`count(${messages.id})` })
-			.from(messages)
-			.where(
-				sql`timezone('Asia/Seoul', ${messages.createdAt}) >= date_trunc('day', timezone('Asia/Seoul', NOW()))`
-			);
+			.from(messages).where(sql`
+				((
+					${messages.createdAt} + INTERVAL '9 hour'
+				)::date)
+				=
+				((NOW() + INTERVAL '9 hour')::date)
+			`);
 		return Number(count);
 	},
 	async getRegionStats() {

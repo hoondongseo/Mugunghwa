@@ -5,7 +5,7 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
 	// 상대 경로로 자산 로드 (파비콘 등) 설정
-	base: "./",
+	base: process.env.NODE_ENV === "production" ? "./" : "/",
 	plugins: [
 		react(),
 		runtimeErrorOverlay(),

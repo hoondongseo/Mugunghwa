@@ -172,6 +172,11 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 		secret: process.env.ADMIN_COOKIE_PASSWORD || "change-me-in-production",
 		resave: false,
 		saveUninitialized: true,
+		cookie: {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "lax",
+		},
 	}
 );
 

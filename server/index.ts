@@ -7,6 +7,9 @@ import AdminJSSequelize from "@adminjs/sequelize";
 import { Sequelize, DataTypes } from "sequelize";
 import { db } from "./db"; // Drizzle ORM usage
 import dotenv from "dotenv";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import cors from "cors";
 
 dotenv.config();
 
@@ -176,10 +179,17 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 
 // Create Express app
 const app = express();
-// Body parsing for API routes
+// Security middlewares
+app.disable('x-powered-by');
+app.use(helmet());
+// Rate limit API: max 100 requests per 15 minutes per IP
+app.use('/api', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
+// CORS: restrict origins
+app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') || [], credentials: true }));
+// Body parser size limit
 app.use(adminJs.options.rootPath, router);
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: false, limit: '10kb' }));
 
 // API request logging middleware
 app.use((req, res, next) => {

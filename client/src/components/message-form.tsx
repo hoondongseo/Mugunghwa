@@ -131,7 +131,7 @@ export function MessageForm({ userLocation, onSuccess }: MessageFormProps) {
 				form.setError("content", {
 					type: "manual",
 					message:
-						"부적절한 내용이 포함되어 있습니다. 내용을 수정해주세요.",
+						"부적절한 내용이 포함되어 있거나 메시지가 너무 깁니다. 내용을 수정해주세요.",
 				});
 				setIsSubmitting(false);
 				return;

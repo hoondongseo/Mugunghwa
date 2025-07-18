@@ -154,7 +154,9 @@ export default function Home() {
 	const handleUpdateMessage = async (id: number, content: string) => {
 		// Content filter 적용
 		if (!filterContent(content)) {
-			alert("부적절한 단어가 포함되어 있어 메시지를 수정할 수 없습니다.");
+			alert(
+				"부적절한 내용이 포함되어 있거나 메시지가 너무 깁니다. 내용을 수정해주세요."
+			);
 			return;
 		}
 		try {

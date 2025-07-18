@@ -153,10 +153,13 @@ export const storage: IStorage = {
 	},
 	async getTodayMessagesCount() {
 		// Count messages whose creation date is today (in DB date context)
+		// Count messages created today in Korea timezone (KST)
 		const [{ count }] = await db
 			.select({ count: sql`count(${messages.id})` })
 			.from(messages)
-			.where(sql`DATE(${messages.createdAt}) = CURRENT_DATE`);
+			.where(
+				sql`DATE(timezone('Asia/Seoul', ${messages.createdAt})) = timezone('Asia/Seoul', NOW())::date`
+			);
 		return Number(count);
 	},
 	async getRegionStats() {

@@ -200,6 +200,10 @@ app.use(
 app.get("/api/csrf-token", (req, res) => {
 	res.json({ csrfToken: (req as any).csrfToken() });
 });
+// Additional Helmet security headers
+app.use(helmet.noSniff());
+app.use(helmet.frameguard({ action: "deny" }));
+app.use(helmet.referrerPolicy({ policy: "no-referrer" }));
 
 // Redirect HTTP to HTTPS and enable HSTS in production
 if (process.env.NODE_ENV === "production") {

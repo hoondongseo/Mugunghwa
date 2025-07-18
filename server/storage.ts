@@ -154,23 +154,26 @@ export const storage: IStorage = {
 	async getTodayMessagesCount() {
 		// Count messages whose creation date is today (in DB date context)
 		// Count messages created today in Korea timezone (KST)
+		// Count messages created since midnight KST using SQL
 		const [{ count }] = await db
 			.select({ count: sql`count(${messages.id})` })
 			.from(messages)
 			.where(
-				sql`DATE(timezone('Asia/Seoul', ${messages.createdAt})) = timezone('Asia/Seoul', NOW())::date`
+				sql`timezone('Asia/Seoul', ${messages.createdAt}) >= date_trunc('day', timezone('Asia/Seoul', NOW()))`
 			);
 		return Number(count);
 	},
 	async getRegionStats() {
 		const allRegions = await db.select().from(regions);
 		const totalCount = await this.getTotalMessagesCount();
-		return allRegions.map((r) => ({
-			region: r.name,
-			messageCount: r.messageCount,
-			percentage:
-				totalCount > 0 ? (r.messageCount / totalCount) * 100 : 0,
-		}));
+		return allRegions.map((r) => {
+			const count = r.messageCount ?? 0;
+			return {
+				region: r.name,
+				messageCount: count,
+				percentage: totalCount > 0 ? (count / totalCount) * 100 : 0,
+			};
+		});
 	},
 	async updateMessage(id: number, content: string) {
 		const [msg] = await db

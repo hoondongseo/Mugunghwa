@@ -1,14 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
 	// 상대 경로로 자산 로드 (파비콘 등) 설정
 	base: process.env.NODE_ENV === "production" ? "./" : "/",
 	plugins: [
 		react(),
-		runtimeErrorOverlay(),
 		...(process.env.NODE_ENV !== "production" &&
 		process.env.REPL_ID !== undefined
 			? [

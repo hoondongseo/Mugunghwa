@@ -184,6 +184,8 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 
 // Create Express app
 const app = express();
+// Trust proxy headers (e.g., x-forwarded-proto) for proper HTTPS detection in production
+app.set("trust proxy", true);
 // Cookie parser (needed for CSRF)
 app.use(cookieParser());
 // CSRF protection for API routes only: set CSRF token cookie and header
@@ -220,8 +222,9 @@ if (process.env.NODE_ENV === "production") {
 	);
 }
 
-// Body parsing for API routes
+// Mount AdminJS router with authentication under /admin
 app.use(adminJs.options.rootPath, router);
+// Body parsing so AdminJS login forms and API JSON are parsed
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

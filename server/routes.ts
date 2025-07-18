@@ -16,15 +16,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 			const regions = await storage.getRegions();
 			const regionMap = new Map(regions.map((r) => [r.name, r]));
 			messages = messages.map((msg) => {
-				const lat = parseFloat((msg as any).latitude);
-				const lng = parseFloat((msg as any).longitude);
-				if (isNaN(lat) || isNaN(lng)) {
+				// fallback to region coords if missing
+				let latNum = parseFloat((msg as any).latitude);
+				let lngNum = parseFloat((msg as any).longitude);
+				if (isNaN(latNum) || isNaN(lngNum)) {
 					const region = regionMap.get(msg.region);
 					if (region) {
 						(msg as any).latitude = region.latitude;
 						(msg as any).longitude = region.longitude;
 					}
+					latNum = parseFloat((msg as any).latitude);
+					lngNum = parseFloat((msg as any).longitude);
 				}
+				// round to two decimal places
+				(msg as any).latitude = latNum.toFixed(2);
+				(msg as any).longitude = lngNum.toFixed(2);
 				return msg;
 			});
 			res.json(messages);

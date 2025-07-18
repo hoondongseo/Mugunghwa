@@ -8,6 +8,8 @@ import { Sequelize, DataTypes } from "sequelize";
 import { db } from "./db"; // Drizzle ORM usage
 import dotenv from "dotenv";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
+import csurf from "csurf";
 
 dotenv.config();
 
@@ -182,6 +184,15 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 
 // Create Express app
 const app = express();
+// Cookie parser (needed for CSRF)
+app.use(cookieParser());
+// CSRF protection: set CSRF token cookie
+app.use(csurf({ cookie: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' } }));
+// Expose CSRF token for client-side consumption
+app.get('/api/csrf-token', (req, res) => {
+  res.json({ csrfToken: (req as any).csrfToken() });
+});
+
 // Redirect HTTP to HTTPS and enable HSTS in production
 if (process.env.NODE_ENV === "production") {
 	app.use((req, res, next) => {

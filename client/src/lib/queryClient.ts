@@ -12,11 +12,20 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  // Prepare headers
+  const headers: Record<string, string> = data ? { "Content-Type": "application/json" } : {};
+  // Fetch CSRF token and include for state-changing requests
+  if (method.toUpperCase() !== 'GET') {
+    const tokenRes = await fetch('/api/csrf-token', { credentials: 'include' });
+    const { csrfToken } = await tokenRes.json();
+    // Use header key csurf expects
+    headers['X-CSRF-Token'] = csrfToken;
+  }
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers,
     credentials: "include",
+    body: data ? JSON.stringify(data) : undefined,
   });
 
   await throwIfResNotOk(res);

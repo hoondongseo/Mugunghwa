@@ -99,6 +99,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 	app.post("/api/messages", async (req, res) => {
 		try {
 			const validatedData = insertMessageSchema.parse(req.body);
+			// Round latitude and longitude to two decimal places
+			validatedData.latitude = parseFloat(validatedData.latitude).toFixed(
+				2
+			);
+			validatedData.longitude = parseFloat(
+				validatedData.longitude
+			).toFixed(2);
 			const message = await storage.createMessage(validatedData);
 			res.status(201).json(message);
 		} catch (error) {

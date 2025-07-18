@@ -152,12 +152,11 @@ export const storage: IStorage = {
 		return Number(count);
 	},
 	async getTodayMessagesCount() {
-		const today = new Date();
-		today.setHours(0, 0, 0, 0);
+		// Count messages whose creation date is today (in DB date context)
 		const [{ count }] = await db
 			.select({ count: sql`count(${messages.id})` })
 			.from(messages)
-			.where(gte(messages.createdAt, today));
+			.where(sql`DATE(${messages.createdAt}) = CURRENT_DATE`);
 		return Number(count);
 	},
 	async getRegionStats() {

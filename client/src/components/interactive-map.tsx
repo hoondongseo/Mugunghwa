@@ -19,6 +19,9 @@ interface InteractiveMapProps {
 	userLocation?: { latitude: number; longitude: number } | null;
 	likedIds: Set<number>;
 	onToggleLike: (id: number) => void;
+	/** Called when a marker is clicked */
+	onMarkerClick?: (message: MessageType) => void;
+	/** Message to center on map */
 	targetMessage?: MessageType;
 }
 
@@ -27,11 +30,30 @@ export function InteractiveMap({
 	userLocation,
 	likedIds,
 	onToggleLike,
+	onMarkerClick,
 	targetMessage,
 }: InteractiveMapProps): JSX.Element {
 	// Close popup on map click
 	function MapClickHandler() {
 		const map = useMapEvents({ click: () => map.closePopup() });
+		return null;
+	}
+	// center map when a popup opens (i.e., marker clicked)
+	function CenterOnPopup() {
+		const map = useMap();
+		useEffect(() => {
+			const onPopupOpen = (e: any) => {
+				const latlng = e.popup.getLatLng();
+				map.flyTo([latlng.lat, latlng.lng], map.getZoom(), {
+					animate: true,
+					duration: 0.5,
+				});
+			};
+			map.on("popupopen", onPopupOpen);
+			return () => {
+				map.off("popupopen", onPopupOpen);
+			};
+		}, [map]);
 		return null;
 	}
 
@@ -44,6 +66,8 @@ export function InteractiveMap({
 		refetchOnReconnect: false,
 	});
 
+	// ref for map instance
+	const mapRef = useRef<L.Map | null>(null);
 	// refs for markers and custom icon
 	const markerRefs = useRef<Record<number, L.Marker>>({});
 	const mugunghwaIcon = new L.Icon({
@@ -57,6 +81,9 @@ export function InteractiveMap({
 		<div className="relative bg-gradient-to-b from-blue-50 to-green-50 rounded-lg border shadow-sm overflow-hidden">
 			<div className="w-full h-96 md:h-[600px] relative z-0">
 				<MapContainer
+					whenCreated={(mapInstance) => {
+						mapRef.current = mapInstance;
+					}}
 					center={[36.5, 127.8]}
 					zoom={7}
 					scrollWheelZoom={true}
@@ -66,6 +93,7 @@ export function InteractiveMap({
 					maxZoom={7} // 최대 확대 레벨 제한 (개인정보 보호)
 					className="h-full w-full z-0 rounded-lg"
 				>
+					<CenterOnPopup />
 					{targetMessage && (
 						<MapUpdater
 							message={targetMessage}

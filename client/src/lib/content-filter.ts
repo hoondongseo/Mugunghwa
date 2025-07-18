@@ -90,8 +90,8 @@ export function filterContent(content: string): boolean {
 	}
 
 	// Check for spam patterns (repeated characters, all caps, etc.)
-	if (/(.)\1{4,}/.test(content)) {
-		// 5+ repeated characters
+	if (/(.)\1{20,}/.test(content)) {
+		// 20+ repeated characters
 		return false;
 	}
 

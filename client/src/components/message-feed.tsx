@@ -223,7 +223,7 @@ export function MessageFeed({
 															);
 															newContent = prompt(
 																"메시지를 수정하세요:",
-																""
+																newContent
 															);
 															continue;
 														}

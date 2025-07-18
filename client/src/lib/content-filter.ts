@@ -4,6 +4,9 @@ const inappropriateKeywords = [
 	"멍청이",
 	"개새끼",
 	"씨발",
+	"시발",
+	"ㅅㅂ",
+	"ㅂㅅ",
 	"좆",
 	"병신",
 	"미친",
@@ -27,8 +30,6 @@ const inappropriateKeywords = [
 	"광고",
 	"홍보",
 	"클릭",
-	"링크",
-	"사이트",
 	"돈",
 	"벌기",
 ];
@@ -94,8 +95,12 @@ export function filterContent(content: string): boolean {
 		return false;
 	}
 
-	if (content.toUpperCase() === content && content.length > 50) {
-		// All caps and long
+	// Reject only if ALL letters are uppercase AND contains Latin letters
+	if (
+		/[A-Za-z]/.test(content) &&
+		content === content.toUpperCase() &&
+		content.length > 50
+	) {
 		return false;
 	}
 

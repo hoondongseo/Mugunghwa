@@ -7,6 +7,7 @@ import AdminJSSequelize from "@adminjs/sequelize";
 import { Sequelize, DataTypes } from "sequelize";
 import { db } from "./db"; // Drizzle ORM usage
 import dotenv from "dotenv";
+import helmet from "helmet";
 
 dotenv.config();
 
@@ -176,6 +177,20 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 
 // Create Express app
 const app = express();
+// Redirect HTTP to HTTPS and enable HSTS in production
+if (process.env.NODE_ENV === "production") {
+	app.use((req, res, next) => {
+		const proto = req.headers["x-forwarded-proto"] || req.protocol;
+		if (proto !== "https") {
+			return res.redirect(`https://${req.headers.host}${req.url}`);
+		}
+		next();
+	});
+	app.use(
+		helmet.hsts({ maxAge: 60 * 60 * 24 * 365, includeSubDomains: true })
+	);
+}
+
 // Body parsing for API routes
 app.use(adminJs.options.rootPath, router);
 app.use(express.json());

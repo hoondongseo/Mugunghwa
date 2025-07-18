@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import sanitizeHtml from "sanitize-html";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertMessageSchema } from "@shared/schema";
@@ -99,6 +100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 	app.post("/api/messages", async (req, res) => {
 		try {
 			const validatedData = insertMessageSchema.parse(req.body);
+			// Sanitize content to prevent XSS
+			validatedData.content = sanitizeHtml(validatedData.content);
 			// Round latitude and longitude to two decimal places
 			validatedData.latitude = parseFloat(validatedData.latitude).toFixed(
 				2
@@ -207,10 +210,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 		try {
 			const id = parseInt(req.params.id);
 			const { content } = req.body;
+			// Sanitize updated content to prevent XSS
+			const safeContent = sanitizeHtml(content);
 			if (isNaN(id) || typeof content !== "string") {
 				return res.status(400).json({ error: "Invalid request data" });
 			}
-			const updated = await storage.updateMessage(id, content);
+			const updated = await storage.updateMessage(id, safeContent);
 			if (!updated) {
 				return res.status(404).json({ error: "Message not found" });
 			}

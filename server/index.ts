@@ -187,10 +187,18 @@ const app = express();
 // Cookie parser (needed for CSRF)
 app.use(cookieParser());
 // CSRF protection: set CSRF token cookie
-app.use(csurf({ cookie: { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' } }));
+app.use(
+	csurf({
+		cookie: {
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "lax",
+		},
+	})
+);
 // Expose CSRF token for client-side consumption
-app.get('/api/csrf-token', (req, res) => {
-  res.json({ csrfToken: (req as any).csrfToken() });
+app.get("/api/csrf-token", (req, res) => {
+	res.json({ csrfToken: (req as any).csrfToken() });
 });
 
 // Redirect HTTP to HTTPS and enable HSTS in production

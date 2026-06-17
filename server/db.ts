@@ -3,11 +3,23 @@ import pkg from "pg";
 const { Pool } = pkg;
 import { drizzle } from "drizzle-orm/node-postgres";
 
-// PostgreSQL 연결 설정
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+	throw new Error("DATABASE_URL environment variable is required");
+}
+
+// Render/managed Postgres 환경은 TLS를 요구하는 경우가 많다.
 const pool = new Pool({
-	connectionString:
-		process.env.DATABASE_URL ||
-		"postgresql://user:password@localhost:5432/mugunghwa",
+	connectionString,
+	ssl:
+		process.env.NODE_ENV === "production"
+			? { rejectUnauthorized: false }
+			: undefined,
+});
+
+pool.on("error", (err) => {
+	console.error("Unexpected PostgreSQL pool error:", err);
 });
 
 // Drizzle ORM 인스턴스 생성

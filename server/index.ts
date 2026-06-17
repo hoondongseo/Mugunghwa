@@ -52,7 +52,7 @@ const MessageModel = sequelize.define(
 	{
 		tableName: "messages",
 		timestamps: false,
-	}
+	},
 );
 const RegionModel = sequelize.define(
 	"Region",
@@ -69,7 +69,7 @@ const RegionModel = sequelize.define(
 	{
 		tableName: "regions",
 		timestamps: false,
-	}
+	},
 );
 
 const adminJs = new AdminJS({
@@ -95,7 +95,7 @@ const adminJs = new AdminJS({
 						before: async (request: ActionRequest) => {
 							+console.log(
 								"AdminJS Message new payload:",
-								request.payload
+								request.payload,
 							);
 							if (request.payload) {
 								// Recursively remove any 'id' key in the entire payload
@@ -132,7 +132,7 @@ const adminJs = new AdminJS({
 						before: async (request: ActionRequest) => {
 							+console.log(
 								"AdminJS Region new payload:",
-								request.payload
+								request.payload,
 							);
 							if (request.payload) {
 								const removeId = (obj: any) => {
@@ -179,7 +179,7 @@ const router = AdminJSExpress.buildAuthenticatedRouter(
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "lax",
 		},
-	}
+	},
 );
 
 // Create Express app
@@ -197,7 +197,7 @@ app.use(
 			secure: process.env.NODE_ENV === "production",
 			sameSite: "lax",
 		},
-	})
+	}),
 );
 // Expose CSRF token for client-side consumption under /api
 app.get("/api/csrf-token", (req, res) => {
@@ -218,7 +218,7 @@ if (process.env.NODE_ENV === "production") {
 		next();
 	});
 	app.use(
-		helmet.hsts({ maxAge: 60 * 60 * 24 * 365, includeSubDomains: true })
+		helmet.hsts({ maxAge: 60 * 60 * 24 * 365, includeSubDomains: true }),
 	);
 }
 
@@ -262,7 +262,6 @@ app.use((req, res, next) => {
 		res.status(status).json({
 			message: err.message || "Internal Server Error",
 		});
-		throw err;
 	});
 
 	// Vite or static
